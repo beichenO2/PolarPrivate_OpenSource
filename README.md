@@ -70,22 +70,6 @@ R9「明文外发禁令」删除了 `/api/secrets/{id}/reveal` 与 service-token
 
 ---
 
-## 页面预览
-
-![仪表盘 — 概览统计与最近操作](screenshots/pp-01-dashboard.png)
-
-![密钥管理 — 加密存储，只写不可读](screenshots/pp-02-secrets.png)
-
-![项目管理 — 多项目隔离](screenshots/pp-03-projects.png)
-
-![绑定关系 — 服务名 → Secret 映射](screenshots/pp-04-bindings.png)
-
-![测试中心 — API 连通性与 Binding 探针](screenshots/pp-05-test-center.png)
-
-![审计日志 — 脱敏后的操作记录](screenshots/pp-06-logs.png)
-
----
-
 ## 架构
 
 ```
@@ -111,7 +95,7 @@ PolarPrivate/
 │   │   └── db/models.py            # Project / Secret / Binding / AuditLog
 │   ├── alembic/versions/           # 14 版数据库迁移
 │   └── tests/                      # 327 个 pytest 用例
-├── frontend/src/
+├── frontend/src/                   # Web UI（Dashboard · Secrets · Bindings · Test Center 等）
 │   ├── pages/                      # Dashboard / Secrets / Bindings / Logs …
 │   └── components/                 # OnboardingWizard / UnlockModal / Sidebar
 ├── sdk/                            # Python SDK
@@ -119,7 +103,6 @@ PolarPrivate/
 ├── docs/                           # architecture / security-model / api-reference
 ├── capabilities.json               # SOTAgent 能力发现声明
 ├── polaris.json                    # Polarisor 生态 SSOT
-└── screenshots/                    # Web UI 截图
 ```
 
 **请求路径（LLM 调用）**
