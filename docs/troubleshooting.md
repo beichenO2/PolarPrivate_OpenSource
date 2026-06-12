@@ -298,6 +298,35 @@ curl "http://127.0.0.1:12790/api/logs?q=upstream"
 | `INTERNAL_ERROR`   | 500         | 未捕获的内部错误（不暴露异常详情）|
 | `HTTP_ERROR`       | 各种        | 通用 HTTP 错误                   |
 
+---
+
+### PolarClaw Agent 多轮工具对话后空回复 (2026-06)
+
+**症状**: Agent 首轮 tool call 正常，后续轮次极快返回（数百 ms），PolarClaw 日志
+`toolCalls=0, contentLen=0`，用户看到「暂无文本回复」。
+
+**根因**: 请求含 `tool_call` / `tool` 历史且被路由到 `llm.glm51.enterprise` 时，
+讯飞订阅上游偶发 **HTTP 200 空 body**（非 429、非超时）。glm51 订阅**支持** tool
+calling，问题为特定 follow-up 上下文兼容。
+
+**网关侧修复（已默认启用）**: `tool_convo_reroute` — 满足条件时改路由
+`qwen3.7-plus` @ `llm.aliyun.codingplan`。详见
+[tool-conversation-reroute.md](./tool-conversation-reroute.md)。
+
+**诊断**:
+
+```bash
+# 默认应看到 model=qwen3.7-plus
+curl -s http://127.0.0.1:12790/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model":"0001","messages":[{"role":"user","content":"x"},{"role":"tool","tool_call_id":"c1","content":"{}"}]}'
+
+# 绕过改路由复现 glm51 行为
+curl -s ... -H 'x-pp-no-reroute: 1' ...
+```
+
+**若仍空回复**: 检查 PolarClaw TaskContract / skill_activate（生态技能名）及
+`~/.polarclaw/logs/web-stderr.log` 是否有上游 400（如 tool id 不匹配）。
+
 ## 测试与验证
 
 ### 运行单元测试

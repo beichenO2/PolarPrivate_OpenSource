@@ -18,6 +18,7 @@
 - [Test Center](#test-center)
 - [Settings](#settings)
 - [Logs](#logs)
+- [LLM Gateway (v1)](#llm-gateway-v1)
 - [Proxy](#proxy)
 
 ---
@@ -734,6 +735,68 @@
 ```
 
 日志内容已经过脱敏处理（敏感信息替换为 `[REDACTED]`）。
+
+---
+
+## LLM Gateway (v1)
+
+### `POST /v1/chat/completions`
+
+Polarisor 生态统一 LLM 网关（OpenAI 兼容）。按 QCSA capability code 或模型别名路由到
+已配置的 Binding 上游；支持跨订阅负载均衡、429 等待重试、工具对话兼容改路由。
+
+**请求体**: 与 OpenAI Chat Completions 相同（`model`、`messages`、可选 `tools` /
+`stream` 等）。`model` 可为 4-bit QCSA code（如 `0001`）、视觉码 `V*`、或别名
+`glm51` / `qwen3.7-plus` 等。
+
+**可选请求头**:
+
+| Header | 值 | 说明 |
+| ------ | -- | ---- |
+| `X-Client-Id` | `polarclaw` / `polarui` / … | FairScheduler 客户端身份与优先级（PolarClaw SDK 默认带 `polarclaw`） |
+| `x-pp-no-reroute` | `1` | **诊断开关**：禁用「工具对话改路由」，强制走 LOAD_BALANCE 选中的原始订阅，用于复现 glm51 上游行为。不影响跨订阅权重分流本身。 |
+
+**工具对话改路由（默认启用，无需请求头）**: 当 messages 已含 `tool_calls` 或
+`role: "tool"`，且权重选源落在 `llm.glm51.enterprise` 时，网关自动改发
+`qwen3.7-plus` @ `llm.aliyun.codingplan`，避免讯飞订阅对多轮 tool 上下文返回空 200。
+详见 [tool-conversation-reroute.md](./tool-conversation-reroute.md)。
+
+**限速与跨订阅引流**: 本地不对调用方返回限速 429；并发信号量 + 冷却引流 + 上游
+429 等待重试。详见 [rate-limiting-algorithm.md](./rate-limiting-algorithm.md)。
+
+**示例 — 默认（含 tool 历史时应看到 `model: qwen3.7-plus`）**:
+
+```bash
+curl -s http://127.0.0.1:12790/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -H 'X-Client-Id: polarclaw' \
+  -d '{
+    "model": "0001",
+    "messages": [
+      {"role": "user", "content": "继续"},
+      {"role": "assistant", "content": "", "tool_calls": [
+        {"id": "c1", "type": "function", "function": {"name": "get_weather", "arguments": "{\"city\":\"北京\"}"}}
+      ]},
+      {"role": "tool", "tool_call_id": "c1", "content": "{\"temp\":\"15C\"}"}
+    ]
+  }'
+```
+
+**示例 — 绕过改路由（诊断）**:
+
+```bash
+curl -s http://127.0.0.1:12790/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -H 'x-pp-no-reroute: 1' \
+  -d '{ "model": "0001", "messages": [ ... ] }'
+```
+
+**相关端点**:
+
+| 端点 | 说明 |
+| ---- | ---- |
+| `GET /api/rate-limits` | 限速快照 |
+| `GET /api/rate-limits/dashboard` | 限速面板数据 |
 
 ---
 
