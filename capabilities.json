@@ -1,0 +1,96 @@
+{
+  "project": "PolarPrivate",
+  "version": "0.5.0",
+  "capabilities": [
+    {
+      "id": "polarprivate.proxy",
+      "service_name": "polarprivate",
+      "description": "反向代理到已绑定的上游服务（LLM API 等），自动注入密钥",
+      "transport": "http",
+      "endpoint": "/proxy/{service_name}/{path}",
+      "method": "POST",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "service_name": { "type": "string", "description": "绑定的服务名（如 openai, anthropic）" },
+          "path": { "type": "string", "description": "上游路径" }
+        }
+      },
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 120000
+    },
+    {
+      "id": "polarprivate.render",
+      "service_name": "polarprivate",
+      "description": "渲染模板（用身份/密钥变量替换占位符）",
+      "transport": "http",
+      "endpoint": "/api/render",
+      "method": "POST",
+      "input_schema": {
+        "type": "object",
+        "required": ["template"],
+        "properties": {
+          "template": { "type": "string" },
+          "format": { "type": "string", "enum": ["markdown", "html", "txt"] },
+          "project_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "rendered": { "type": "string" },
+          "warnings": { "type": "array" },
+          "stats": { "type": "object" }
+        }
+      },
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 10000
+    },
+    {
+      "id": "polarprivate.sanitize.scan",
+      "service_name": "polarprivate",
+      "description": "扫描文本中的敏感信息",
+      "transport": "http",
+      "endpoint": "/api/sanitize/scan",
+      "method": "POST",
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 15000
+    },
+    {
+      "id": "polarprivate.sanitize.redact",
+      "service_name": "polarprivate",
+      "description": "脱敏文本中的敏感信息",
+      "transport": "http",
+      "endpoint": "/api/sanitize/redact",
+      "method": "POST",
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 15000
+    },
+    {
+      "id": "polarprivate.vault.status",
+      "service_name": "polarprivate",
+      "description": "检查 Vault 锁定状态",
+      "transport": "http",
+      "endpoint": "/api/vault/status",
+      "method": "GET",
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 3000
+    },
+    {
+      "id": "polarprivate.export",
+      "service_name": "polarprivate",
+      "description": "导出项目配置文件（markdown/html/txt）",
+      "transport": "http",
+      "endpoint": "/api/export",
+      "method": "POST",
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 10000
+    }
+  ]
+}

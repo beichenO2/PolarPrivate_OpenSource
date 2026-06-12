@@ -1,0 +1,37 @@
+[
+  {
+    "file": "雷达实验_全部结果图.pdf",
+    "type": "pdf",
+    "pages": 22,
+    "chars": 1359,
+    "out": "雷达实验_全部结果图.txt"
+  },
+  {
+    "file": "雷达实验_新旧对比.pdf",
+    "type": "pdf",
+    "pages": 22,
+    "chars": 1313,
+    "out": "雷达实验_新旧对比.txt"
+  },
+  {
+    "file": "2、雷达测距和距离分辨率.pptx",
+    "type": "pptx",
+    "slides": 10,
+    "chars": 1061,
+    "out": "2、雷达测距和距离分辨率.txt"
+  },
+  {
+    "file": "3、雷达回波信号测速处理.pptx",
+    "type": "pptx",
+    "slides": 12,
+    "chars": 1378,
+    "out": "3、雷达回波信号测速处理.txt"
+  },
+  {
+    "file": "4、雷达回波信号恒虚警检测(CFAR)处理.pptx",
+    "type": "pptx",
+    "slides": 14,
+    "chars": 2524,
+    "out": "4、雷达回波信号恒虚警检测(CFAR)处理.txt"
+  }
+]

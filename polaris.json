@@ -1,0 +1,776 @@
+{
+  "name": "PolarPrivate",
+  "_meta": {
+    "schema_version": "1.0",
+    "last_synced_at": "2026-06-10T00:00:00+08:00"
+  },
+  "$schema": "https://polarisor.dev/polaris.schema.json",
+  "description": "本地隐私代理与脱敏门户 — 加密存储 Secret/Identity，通过反向代理注入密钥，Agent 输出自动脱敏",
+  "tier": "infra",
+  "status": "active",
+  "repository": "~/Polarisor/PolarPrivate",
+  "version": "0.5.0",
+  "tech": {
+    "backend": {
+      "runtime": "Python 3.12",
+      "framework": "FastAPI 0.135",
+      "orm": "SQLAlchemy 2.0",
+      "db": "SQLite (Fernet 加密字段)",
+      "crypto": "cryptography 46 (Fernet + PBKDF2)",
+      "http_client": "httpx 0.28",
+      "cli": "Typer 0.24",
+      "log": "structlog 25 (脱敏处理器)"
+    },
+    "frontend": {
+      "runtime": "Node 22",
+      "framework": "React 18.3 + TypeScript",
+      "bundler": "Vite",
+      "ui": "Tailwind CSS",
+      "state": "Zustand 5 + TanStack React Query 5",
+      "router": "react-router-dom 6",
+      "notification": "sonner 2"
+    },
+    "sdk": {
+      "python": "privportal-sdk (identity + middleware)",
+      "typescript": "sdk-ts (identity + middleware)"
+    }
+  },
+  "ports": {
+    "backend_api": {
+      "port": 12790,
+      "protocol": "HTTP",
+      "description": "FastAPI 主接口 + 反向代理"
+    },
+    "frontend_dev": {
+      "port": 5170,
+      "protocol": "HTTP",
+      "description": "Vite dev server"
+    }
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "need": "统一加密存储 Identity（文档隐私）和 Secret（运行时密钥），Master Password 派生密钥",
+      "approach": "Fernet 对称加密 + PBKDF2 密钥派生。SQLAlchemy ORM 管理加密字段，解锁后内存持有 Fernet key",
+      "features": [
+        {
+          "name": "Identity CRUD",
+          "description": "按项目隔离的姓名/邮箱/学号等隐私信息管理",
+          "status": "done",
+          "behavior": [
+            "按项目隔离的姓名/邮箱/学号等隐私信息管理"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Secret CRUD",
+          "description": "API Key/Token/密码的加密存储，只写不可读",
+          "status": "done",
+          "behavior": [
+            "API Key/Token/密码的加密存储，只写不可读"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Master Password 保险库",
+          "description": "首次设置 → 派生 Fernet key → 解锁 Vault",
+          "status": "done",
+          "behavior": [
+            "首次设置 → 派生 Fernet key → 解锁 Vault"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "多项目隔离",
+          "description": "Identity/Secret/Binding 按项目分组",
+          "status": "done",
+          "behavior": [
+            "Identity/Secret/Binding 按项目分组"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "审计日志",
+          "description": "所有关键操作记录（创建/访问/修改/删除）",
+          "status": "done",
+          "behavior": [
+            "所有关键操作记录（创建/访问/修改/删除）"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R2",
+      "need": "Agent 和程序调用第三方 API 时不接触明文密钥，通过本地代理自动注入",
+      "approach": "FastAPI 反向代理端点 /proxy/{service_name}/{path}，根据 Binding 查 Secret，注入 Authorization header 后 httpx 转发",
+      "features": [
+        {
+          "name": "Binding 配置",
+          "description": "服务名 → Secret ref 映射，支持 GUI 配置",
+          "status": "done",
+          "behavior": [
+            "服务名 → Secret ref 映射，支持 GUI 配置"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "反向代理",
+          "description": "POST /proxy/{service}/{path}，自动注入密钥转发",
+          "status": "done",
+          "behavior": [
+            "POST /proxy/{service}/{path}，自动注入密钥转发"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "OpenAI 兼容",
+          "description": "多渠道 LLM Proxy：阿里云 CodingPlan + 天翼云息壤 CodingPlan + MiniMax",
+          "status": "done",
+          "behavior": [
+            "阿里云 CodingPlan：llm.aliyun.codingplan（coding.dashscope.aliyuncs.com/v1，qwen 系列 + kimi）",
+            "天翼云息壤 CodingPlan：llm.ctyun.codingplan（wishub-x6.ctyun.cn/coding/v1，GLM 系列主力）",
+            "MiniMax：llm.minimax",
+            "CodingPlan 不支持的模型（VLM 等）需单独创建通用 DashScope Binding",
+            "各渠道 API Key 和 base_url 互不通用",
+            "天翼云 codingPlan 限制：仅可在 AI 编程工具中使用，禁止 API 自动化脚本"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "连通性测试",
+          "description": "Test Center 中验证 Binding 到上游的连通性",
+          "status": "done",
+          "behavior": [
+            "Test Center 中验证 Binding 到上游的连通性"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "用量统计",
+          "description": "记录代理调用次数/耗时/错误率",
+          "status": "done",
+          "behavior": [
+            "记录代理调用次数/耗时/错误率"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "动态端口 Discovery",
+          "status": "done",
+          "tech": [
+            "FastAPI",
+            "Settings"
+          ],
+          "interfaces": [
+            "GET /proxy/"
+          ],
+          "behavior": [
+            "Discovery 端点从 Settings 读取 host:port，不再硬编码"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "GLM-5.1 负载均衡",
+          "status": "done",
+          "tech": [
+            "model_routing",
+            "v1_gateway"
+          ],
+          "interfaces": [
+            "LOAD_BALANCE_GROUPS",
+            "select_service_by_weight()"
+          ],
+          "behavior": [
+            "GLM-5.1 模型支持多提供源负载均衡",
+            "企业版 (llm.glm51.enterprise) 权重 2",
+            "天翼云版本 (llm.ctyun.codingplan) 权重 1",
+            "按 2:1 比例轮换分配请求",
+            "与 fallback 机制独立工作"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R3",
+      "need": "Agent 输出（日志/报告/聊天）中不泄露 Secret 明文",
+      "approach": "Sanitize 模块 — structlog 处理器 + REST API 端点。正则扫描匹配已知 Secret 子串，替换为 [REDACTED]",
+      "features": [
+        {
+          "name": "日志脱敏",
+          "description": "structlog 处理器自动将日志中的密钥子串替换",
+          "status": "done",
+          "behavior": [
+            "structlog 处理器自动将日志中的密钥子串替换"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "文本扫描 API",
+          "description": "POST /api/sanitize/scan 扫描文本中的敏感信息",
+          "status": "done",
+          "behavior": [
+            "POST /api/sanitize/scan 扫描文本中的敏感信息"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "文本脱敏 API",
+          "description": "POST /api/sanitize/redact 替换敏感信息",
+          "status": "done",
+          "behavior": [
+            "POST /api/sanitize/redact 替换敏感信息"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "批量脱敏 API",
+          "description": "POST /api/sanitize/redact/batch 一次处理多条文本",
+          "status": "done",
+          "behavior": [
+            "POST /api/sanitize/redact/batch 一次处理多条文本"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "自定义脱敏规则",
+          "status": "done",
+          "tech": [
+            "SQLAlchemy",
+            "SQLite"
+          ],
+          "interfaces": [
+            "POST /api/sanitize/patterns/custom",
+            "DELETE /api/sanitize/patterns/custom/{label}",
+            "GET /api/sanitize/patterns/custom"
+          ],
+          "behavior": [
+            "用户自定义正则模式 CRUD API",
+            "规则持久化到 CustomPiiPattern 表",
+            "服务重启后自动从 DB 加载"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "泄露检测 API",
+          "status": "done",
+          "tech": [
+            "FastAPI"
+          ],
+          "interfaces": [
+            "POST /api/sanitize/detect-leaks"
+          ],
+          "behavior": [
+            "扫描文本中是否包含已知 Identity 明文值",
+            "返回泄露位置和匹配的 key",
+            "需要完整 session 认证"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R4",
+      "need": "模板中使用 Identity 和 Binding 占位符，预览和导出时按规则回填",
+      "approach": "模板渲染引擎解析 [[identity.xxx]] 和 [[binding.xxx]] 占位符，Identity 可回填明文，Secret 默认显示 ref",
+      "features": [
+        {
+          "name": "模板渲染",
+          "description": "[[identity.xxx]] 替换为明文，[[binding.xxx]] 替换为 ref",
+          "status": "done",
+          "behavior": [
+            "[[identity.xxx]] 替换为明文，[[binding.xxx]] 替换为 ref"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "导出 Markdown/HTML/TXT",
+          "description": "渲染结果导出为三种格式（API 层）",
+          "status": "done",
+          "behavior": [
+            "渲染结果导出为三种格式（API 层）"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "渲染预览",
+          "description": "POST /api/render/preview 返回 HTML 预览",
+          "status": "done",
+          "behavior": [
+            "POST /api/render/preview 返回 HTML 预览"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R5",
+      "need": "人类通过浏览器 GUI 管理所有功能，首次启动有引导流程",
+      "approach": "React 18 SPA + Vite + Tailwind，TanStack Query 管理 API 状态，Zustand 管理客户端状态",
+      "features": [
+        {
+          "name": "Dashboard",
+          "description": "概览统计 — Identity/Secret/Binding 数量、最近操作",
+          "status": "done",
+          "behavior": [
+            "概览统计 — Identity/Secret/Binding 数量、最近操作"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Onboarding 向导",
+          "description": "首次启动：初始化 DB → 设置 Master Password → 可选导入 Demo",
+          "status": "done",
+          "behavior": [
+            "首次启动：初始化 DB → 设置 Master Password → 可选导入 Demo"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Identity 管理页",
+          "description": "按项目浏览/搜索/新建/编辑/删除 Identity",
+          "status": "done",
+          "behavior": [
+            "按项目浏览/搜索/新建/编辑/删除 Identity"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Secret 管理页",
+          "description": "加密值管理，只写不可读，禁用/启用，连通性测试",
+          "status": "done",
+          "behavior": [
+            "加密值管理，只写不可读，禁用/启用，连通性测试"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Binding 管理页",
+          "description": "配置服务名到 Secret 映射",
+          "status": "done",
+          "behavior": [
+            "配置服务名到 Secret 映射"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "Test Center",
+          "description": "测试 Identity 渲染/API 连通性/Binding 探针",
+          "status": "done",
+          "behavior": [
+            "测试 Identity 渲染/API 连通性/Binding 探针"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "日志页",
+          "description": "查看脱敏后的审计日志",
+          "status": "done",
+          "behavior": [
+            "查看脱敏后的审计日志"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "用量看板",
+          "description": "代理调用的图表展示 (UsagePage)",
+          "status": "done",
+          "behavior": [
+            "代理调用的图表展示 (UsagePage)"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R6",
+      "need": "其他项目可通过 SDK 集成 PolarPrivate 的 Identity 和脱敏能力",
+      "approach": "Python SDK (privportal-sdk) 和 TypeScript SDK (sdk-ts)，提供 identity 查询和 middleware 中间件",
+      "features": [
+        {
+          "name": "Python SDK",
+          "description": "identity 模块 + middleware 中间件",
+          "status": "done",
+          "behavior": [
+            "identity 模块 + middleware 中间件"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "TypeScript SDK",
+          "description": "identity 模块 + middleware 中间件",
+          "status": "done",
+          "behavior": [
+            "identity 模块 + middleware 中间件"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "capabilities.json",
+          "description": "标准化能力声明，供 SOTAgent 发现",
+          "status": "done",
+          "behavior": [
+            "标准化能力声明，供 SOTAgent 发现"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R7",
+      "need": "多设备间 Vault 数据保持一致",
+      "approach": "基于 SOTAgent PeerSync 协议，Vault 变更通过端到端加密通道推送到对等节点",
+      "features": [
+        {
+          "name": "Vault 备份导出",
+          "description": "vault-backup.json 导出加密快照",
+          "status": "done",
+          "behavior": [
+            "vault-backup.json 导出加密快照"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "PeerSync 集成",
+          "description": "SOTAgent PeerSync 状态查询 + 备份通知 API",
+          "status": "done",
+          "behavior": [
+            "SOTAgent PeerSync 状态查询 + 备份通知 API"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R8",
+      "need": "LLM Proxy 健壮性增强 — 超长 Prompt 自动压缩、宽松超时、上游错误优雅处理",
+      "approach": "在 proxy.py 的转发链路中加入三层防护：请求前检测 token 数并调用 KnowLever 压缩、拉长非流式超时到 300s、上游 4xx/5xx 错误解析后包装为结构化响应并附带重试建议",
+      "features": [
+        {
+          "name": "Prompt 超长自动压缩",
+          "description": "检测请求 body 中 messages 的 token 数，超过阈值时调用 KnowLever 压缩后再转发",
+          "status": "done",
+          "behavior": [
+            "解析 OpenAI 格式请求的 messages 字段",
+            "用字符/token 比率估算 token 数（3.5 chars/token）",
+            "超过可配置阈值（默认 120000，env PRIVPORTAL_MAX_TOKENS）时保留 system + 最后 4 条消息",
+            "单条消息超 8000 字符时截断中间部分",
+            "截断后记录 warning 日志"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "超时时间拉长",
+          "description": "非流式请求超时从默认值拉长到 300s，流式保持 180s read timeout",
+          "status": "done",
+          "behavior": [
+            "非流式请求 httpx.Timeout(connect=10, read=300, write=30, pool=10)",
+            "流式请求保持现有 180s read timeout",
+            "超时后返回 504（而非 502），附带结构化 suggestion"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "上游错误优雅处理",
+          "description": "LLM 服务器 4xx/5xx 错误不直接透传，解析后包装为结构化响应",
+          "status": "done",
+          "behavior": [
+            "解析上游 JSON 错误响应，提取 error.message / error.code",
+            "429 限流：返回 Retry-After: 30 头 + retry_after_seconds",
+            "413/400 token 超限：返回提示建议压缩",
+            "500/502/503 服务不可用：自动重试一次，失败再返回错误",
+            "所有错误响应统一格式：{ok, error, upstream_status, upstream_code, service, suggestion}"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "append_system_prompt 机制",
+          "description": "LLM Proxy 支持调用方注入额外 system prompt + 不可变安全底线 Prompt",
+          "status": "done",
+          "behavior": [
+            "基础安全 Prompt 从 app/prompts/security-baseline.md 加载，注入到 messages 最后一条",
+            "调用方通过 X-Append-System-Prompt header 或 body append_system_prompt 字段注入额外 system prompt",
+            "注入顺序：原始 messages → 调用方追加 → 安全 Prompt（最后，不可覆盖）",
+            "仅对 llm.* 前缀的服务生效",
+            "append_system_prompt 字段在转发前从 body 移除",
+            "向后兼容：不传 append_system_prompt 时行为不变"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "append_system_prompt 机制",
+          "description": "LLM Proxy 支持调用方注入额外 system prompt + 不可变安全底线 Prompt",
+          "status": "done",
+          "behavior": [
+            "基础安全 Prompt 从 app/prompts/security-baseline.md 加载，注入到 messages 最后一条",
+            "调用方通过 X-Append-System-Prompt header 或 body append_system_prompt 字段注入额外 system prompt",
+            "注入顺序：原始 messages → 调用方追加 → 安全 Prompt（最后，不可覆盖）",
+            "仅对 llm.* 前缀的服务生效",
+            "append_system_prompt 字段在转发前从 body 移除",
+            "向后兼容：不传 append_system_prompt 时行为不变"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    },
+    {
+      "id": "R9",
+      "need": "Plaintext export ban — Secret 明文永远不进入 Agent 可达边界（260505 批次安全主线）",
+      "approach": "(1) 删除 reveal/service-session/service-token 三类明文外发路径；(2) 新增 /sign/{provider}/{action} HMAC 签名服务（B 类）；(3) 新增 /api/d-class/grant 受控信道（D 类，仅限第三方 SDK 白名单）；(4) GUI 移除 reveal 按钮；(5) SDK 退化为无鉴权 client",
+      "features": [
+        {
+          "name": "Reveal/Service-Session/Service-Token 路由删除",
+          "description": "永久删除 /api/secrets/{id}/reveal、/api/vault/service-session、/api/auth/service-token、service_tokens 表",
+          "status": "done",
+          "behavior": [
+            "POST /api/secrets/{id}/reveal 返回 404/405",
+            "POST /api/vault/service-session 返回 404/405",
+            "POST /api/auth/service-token 返回 404/405",
+            "alembic migration 011 删除 service_tokens 表",
+            "SDK middleware 移除 ServiceAuth 与 service-session fallback"
+          ],
+          "test_status": "passed",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "HMAC 签名服务（B 类）",
+          "description": "POST /sign/{provider}/{action} — 调用方传请求元数据，服务端用 binding 关联的 secret 计算签名后返回 header dict，明文不出 PolarPrivate 进程",
+          "status": "done",
+          "behavior": [
+            "weex provider：HMAC-SHA256，输出 ACCESS-KEY/ACCESS-SIGN/ACCESS-TIMESTAMP/ACCESS-PASSPHRASE",
+            "feishu-webhook provider：HMAC-SHA256+Base64",
+            "aliyun-sigv1 provider：HMAC-SHA1",
+            "binding 缺少 required secret keys 时返回 422",
+            "未知 provider 返回 404"
+          ],
+          "test_status": "passed",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "D 类受控信道",
+          "description": "POST /api/d-class/grant — 第三方 SDK 协议（如 tqsdk 期货登录）专用窄接口，受 SHA256 白名单约束",
+          "status": "done",
+          "behavior": [
+            "白名单文件：~/.privportal/d-class-allowlist.json",
+            "校验 service_name + caller_executable_sha256 + allowed_secret_keys",
+            "通过后返回一次性明文 dict，不持久化 session",
+            "每次 grant（成功或失败）强制写审计日志",
+            "Agent 进程 binary 哈希不在白名单中"
+          ],
+          "test_status": "passed",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        },
+        {
+          "name": "GUI 只写不可读",
+          "description": "前端 SecretsPage 移除眼睛/reveal 按钮；编辑时重新输入新明文",
+          "status": "done",
+          "behavior": [
+            "SecretsPage 列表项显示 ●●●●●●●● + 元数据",
+            "SecretEditModal value 字段为空时表示不变，非空时覆写",
+            "Identity reveal 路径保留（PII 占位符不属于 Secret）"
+          ],
+          "test_status": "not_tested",
+          "evidence": [
+            "2026-06-10: feature verified in codebase (L2 gate audit backfill)"
+          ]
+        }
+      ],
+      "blockers": []
+    }
+  ],
+  "depends_on": [],
+  "changelog": [
+    {
+      "date": "2026-05-11",
+      "phase": "260511",
+      "changes": [
+        "R2 GLM-5.1 负载均衡: 已实现",
+        "企业版权重 2，天翼云版本权重 1，按 2:1 比例轮换"
+      ]
+    },
+    {
+      "date": "2026-05-10",
+      "phase": "260508",
+      "changes": [
+        "R8 append_system_prompt: caller can inject system prompt via body field or X-Append-System-Prompt header",
+        "R8 Security baseline prompt: immutable security constraints appended to all LLM proxy requests",
+        "R8 Prompt injection order: original → caller append → security baseline (last)",
+        "R8 Only llm.* services affected; non-LLM proxy unchanged"
+      ]
+    },
+    {
+      "date": "2026-05-08",
+      "phase": "260505",
+      "changes": [
+        "R9 Plaintext export ban: removed /api/secrets/{id}/reveal, /api/vault/service-session, /api/auth/service-token",
+        "R9 Added POST /sign/{provider}/{action} with weex/feishu-webhook/aliyun-sigv1 providers",
+        "R9 Added POST /api/d-class/grant with SHA256 allowlist + audit log",
+        "R9 SDK middleware.py: removed ServiceAuth/service-session fallback",
+        "R9 Frontend SecretsPage: removed reveal/eye toggles",
+        "R9 alembic 011: dropped service_tokens table",
+        "Tests: 14/14 passing for reveal-removal + d-class + sign providers"
+      ]
+    },
+    {
+      "date": "2026-04-26",
+      "phase": "P31",
+      "changes": [
+        "Added ServiceToken model + alembic migration 010",
+        "Added POST /api/auth/service-token (create), GET /api/auth/service-tokens (list), DELETE /api/auth/service-tokens/:id (revoke)",
+        "deps.py: Bearer token validation alongside cookie auth for require_unlocked_vault and require_authenticated_session",
+        "SDK v0.3.0: ServiceAuth class, auth parameter on identity functions and middleware"
+      ]
+    }
+  ],
+  "service_management": {
+    "install_command": "cd backend && pip install -r requirements.txt",
+    "start_command": "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 12790",
+    "restart_command": "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 12790",
+    "health_endpoint": "http://127.0.0.1:12790/api/health"
+  },
+  "depended_by": [
+    "SOTAgent",
+    "PolarCopilot",
+    "KnowLever",
+    "digist",
+    "PolarClaw",
+    "tqsdk"
+  ],
+  "contacts": {
+    "owner": "mac",
+    "last_updated": "2026-05-10",
+    "updated_by": "solo-web-yolo"
+  }
+}
