@@ -488,7 +488,10 @@ async def unified_chat_completions(
     # conversations → send tool-carrying requests to a tool-reliable provider.
     # (Round 0 has no tool messages yet, so the initial tool-call decision can
     # still use the originally routed model; only follow-up rounds reroute.)
-    if service_name == "llm.glm51.enterprise" and _request_has_tool_messages(obj):
+    # Diagnostic escape hatch: header `x-pp-no-reroute: 1` disables this, so the
+    # raw upstream behaviour can be reproduced/tested directly.
+    _no_reroute = request.headers.get("x-pp-no-reroute") == "1"
+    if not _no_reroute and service_name == "llm.glm51.enterprise" and _request_has_tool_messages(obj):
         full_model, service_name = _TOOL_CONVO_REROUTE
         _LOG.info("tool_convo_reroute", reason="glm51_empty_on_tool_messages",
                   to_service=service_name, to_model=full_model)
