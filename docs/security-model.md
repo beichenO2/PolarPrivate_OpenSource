@@ -159,7 +159,7 @@ _SK_LIKE_PATTERN = re.compile(r"sk-[a-zA-Z0-9_-]{10,}")
 ### 仅本地运行
 
 - 后端监听 `127.0.0.1:12790`（默认）。
-- CORS 仅允许 `http://127.0.0.1:5170` 和 `http://localhost:5170`。
+- CORS 仅允许 `http://127.0.0.1:12795` 和 `http://localhost:12795`。
 - 无 TLS（本地 loopback 不需要）。
 - 无外部访问端口暴露。
 

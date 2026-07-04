@@ -62,7 +62,7 @@ PRIVPORTAL_API_PORT=9090 privportal start
 VITE_API_BASE=http://127.0.0.1:9090 npm run dev
 ```
 
-3. 后端 CORS 默认允许 `localhost:5170` 和 `127.0.0.1:5170`。如果前端在其他端口运行，需修改 `backend/app/main.py` 中的 `allow_origins`。
+3. 后端 CORS 默认允许 `localhost:12795` 和 `127.0.0.1:12795`。如果前端在其他端口运行，需修改 `backend/app/main.py` 中的 `allow_origins`。
 
 ---
 

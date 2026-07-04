@@ -7,7 +7,7 @@ export default defineConfig(({ command }) => ({
   preview: { allowedHosts: ["128gb.banteng-edmontosaurus.ts.net"] },
   server: {
     host: "127.0.0.1",
-    port: 5170,
+    port: 12795,
     strictPort: true,
     allowedHosts: true,
     proxy: {

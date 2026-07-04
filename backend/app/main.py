@@ -107,8 +107,8 @@ def create_app() -> FastAPI:
     app.state.vault = VaultService()
     register_exception_handlers(app)
     allowed_origins = [
-        "http://127.0.0.1:5170",
-        "http://localhost:5170",
+        "http://127.0.0.1:12795",
+        "http://localhost:12795",
     ]
     funnel_origin = os.environ.get("FUNNEL_ORIGIN")
     if funnel_origin:

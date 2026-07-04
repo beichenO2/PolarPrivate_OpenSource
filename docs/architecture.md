@@ -114,7 +114,7 @@ PolarPrivate/
 - 通过 `lifespan` 上下文管理器在启动时配置 structlog。
 - 将 `VaultService` 实例挂载到 `app.state.vault`（进程级单例）。
 - 注册统一异常处理器。
-- 配置 CORS 中间件，仅允许 `localhost:5170`（Vite 开发服务器）。
+- 配置 CORS 中间件，仅允许 `localhost:12795`（Vite 开发服务器；5170 已分配给 PolarUI）。
 - 按前缀注册所有 API 路由（`/api/*`）和代理路由（`/proxy/*`）。
 
 **`app/cli.py`** — Typer CLI，提供以下子命令:
@@ -222,7 +222,7 @@ MultiFernet (支持密钥轮换)
 
 ### 8. 前端层
 
-React SPA 通过 Vite 开发服务器在 `localhost:5170` 运行。
+React SPA 通过 Vite 开发服务器在 `localhost:12795` 运行。
 
 **路由结构**:
 

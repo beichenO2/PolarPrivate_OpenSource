@@ -65,17 +65,17 @@ cd frontend
 npm run dev
 ```
 
-前端开发服务器默认运行在 `http://localhost:5170`。
+前端开发服务器默认运行在 `http://localhost:12795`。
 
 ### 4. 打开浏览器
 
-访问 `http://localhost:5170`，首次进入会自动弹出 Onboarding 向导。
+访问 `http://localhost:12795`，首次进入会自动弹出 Onboarding 向导。
 
 ## 快速开始
 
 ### 通过 GUI 初始化
 
-1. 打开浏览器访问 `http://localhost:5170`
+1. 打开浏览器访问 `http://localhost:12795`
 2. Onboarding 向导自动弹出
 3. 点击 **Next** → 数据库自动初始化
 4. 设置 **Master Password**（务必记住，无法恢复！）

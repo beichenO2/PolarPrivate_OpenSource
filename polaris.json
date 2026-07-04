@@ -42,9 +42,9 @@
       "description": "FastAPI 主接口 + 反向代理"
     },
     "frontend_dev": {
-      "port": 5170,
+      "port": 12795,
       "protocol": "HTTP",
-      "description": "Vite dev server"
+      "description": "Vite dev server（5170 已分配给 PolarUI）"
     }
   },
   "requirements": [

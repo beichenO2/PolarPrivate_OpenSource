@@ -62,7 +62,7 @@ cmd_setup() {
 cmd_backup() {
   log "Starting vault backup..."
   if ! check_vault_health; then
-    log "Vault is locked — skipping backup (unlock at http://localhost:5170 to enable)"
+    log "Vault is locked — skipping backup (unlock at http://localhost:12795 to enable)"
     exit 0
   fi
 
@@ -115,7 +115,7 @@ cmd_restore() {
 
   [ -f "$BACKUP_FILE" ] || die "No backup file found at $BACKUP_FILE"
 
-  check_vault_health || die "Vault is not unlocked. Open http://localhost:5170 and unlock first."
+  check_vault_health || die "Vault is not unlocked. Open http://localhost:12795 and unlock first."
 
   local master_pw
   master_pw=$(get_master_password)

@@ -30,7 +30,7 @@ cd frontend && npm install
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 后端 API + 代理 | `http://127.0.0.1:12790` | FastAPI，仅监听 localhost |
-| 前端 Web UI | `http://localhost:5170` | Vite dev server |
+| 前端 Web UI | `http://localhost:12795` | Vite dev server |
 
 ---
 
@@ -133,10 +133,10 @@ privportal start        # → http://127.0.0.1:12790
 
 # 2. 启动前端
 cd frontend
-npm run dev             # → http://localhost:5170
+npm run dev             # → http://localhost:12795
 ```
 
-浏览器打开 `http://localhost:5170`，按 Onboarding 向导设置 **Master Password**，在 Secrets 页录入 API Key，在 Bindings 页创建 `llm.*` 绑定。
+浏览器打开 `http://localhost:12795`，按 Onboarding 向导设置 **Master Password**，在 Secrets 页录入 API Key，在 Bindings 页创建 `llm.*` 绑定。
 
 **OpenAI 兼容调用**（任意 SDK 均可，`api_key` 被忽略）：
 
@@ -167,7 +167,7 @@ curl -X POST http://127.0.0.1:12790/v1/chat/completions \
 |------|------|----------|
 | — | 独立运行即可 | ✅ 可以 |
 | [SOTAgent](https://github.com/beichenO2/SOTAgent) | 进程守护、自动启动、PeerSync 多设备同步 | 推荐 |
-| [PolarPort](https://github.com/beichenO2/PolarPort) | 端口分配与管理（12790 / 5170） | 推荐 |
+| [PolarPort](https://github.com/beichenO2/PolarPort) | 端口分配与管理（12790 / 12795） | 推荐 |
 | [Agent_core](https://github.com/beichenO2/Agent_core) | 安全协议与 Polarisor 集成规范 | 推荐 |
 | [PolarCopilot](https://github.com/beichenO2/PolarCopilot) | Agent 默认经 PolarPrivate 路由 LLM | 生态内推荐 |
 | [KnowLever](https://github.com/beichenO2/KnowLever) | 超长 Prompt 自动压缩（>120K tokens） | 可选 |

@@ -207,8 +207,8 @@ def unlock_vault(
 
 
 _ALLOWED_AUTO_SESSION_ORIGINS = frozenset({
-    "http://127.0.0.1:5170",
-    "http://localhost:5170",
+    "http://127.0.0.1:12795",
+    "http://localhost:12795",
     "http://127.0.0.1:12790",
     "http://localhost:12790",
 })

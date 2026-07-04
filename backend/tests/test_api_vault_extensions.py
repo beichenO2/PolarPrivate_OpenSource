@@ -95,7 +95,7 @@ def test_auto_session_when_unlocked(locked_client, db_session):
     r = locked_client.post(
         "/api/vault/auto-session",
         headers={
-            "Origin": "http://127.0.0.1:5170",
+            "Origin": "http://127.0.0.1:12795",
             "Sec-Fetch-Site": "same-origin",
         },
     )
@@ -112,7 +112,7 @@ def test_auto_session_when_locked(locked_client):
     r = locked_client.post(
         "/api/vault/auto-session",
         headers={
-            "Origin": "http://127.0.0.1:5170",
+            "Origin": "http://127.0.0.1:12795",
             "Sec-Fetch-Site": "same-origin",
         },
     )
