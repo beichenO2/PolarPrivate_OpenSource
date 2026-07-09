@@ -756,9 +756,9 @@
   ],
   "service_management": {
     "install_command": "cd backend && pip install -r requirements.txt",
-    "start_command": "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 12790",
-    "restart_command": "cd backend && uvicorn app.main:app --host 127.0.0.1 --port 12790",
-    "health_endpoint": "http://127.0.0.1:12790/api/health"
+    "start_command": "bash backend/Start/start.sh start",
+    "restart_command": "bash backend/Start/start.sh restart",
+    "health_endpoint": "http://127.0.0.1:12790/health"
   },
   "depended_by": [
     "SOTAgent",
