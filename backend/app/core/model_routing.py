@@ -29,11 +29,11 @@ def fast_minimax_model() -> str:
 # Prefix V = Vision/multimodal (e.g. V0000, V1000)
 CAPABILITY_CLOUD_MAP: dict[str, tuple[str, str]] = {
     # ── Text-only (4-bit QCSA) ──
-    "0000": ("xopglm51", "llm.glm51.enterprise"),              # 默认均衡
+    "0000": ("xopglm52", "llm.glm51.enterprise"),              # 默认均衡 → GLM-5.2（xfyun 现已支持）
     "0010": ("xopdeepseekv4flash", "llm.glm51.enterprise"),    # 快速
     "0100": ("xopdeepseekv4pro", "llm.glm51.enterprise"),      # 长上下文
     "0110": ("MiniMax-M3", "llm.minimax"),                     # 快速+长上下文
-    "1000": ("xopglm51", "llm.glm51.enterprise"),              # 旗舰（质量优先对话）
+    "1000": ("xopglm52", "llm.glm51.enterprise"),              # 旗舰（质量优先对话）→ GLM-5.2
     "1100": ("qwen3.7-plus", "llm.aliyun.codingplan"),        # 旗舰+长上下文（Qwen3.7-Plus 纯文本）
     "1110": ("MiniMax-M3-Thinking", "llm.minimax"),            # 旗舰+深度推理
     # ── Agentic (A=1) ──
@@ -54,10 +54,17 @@ CAPABILITY_CLOUD_MAP: dict[str, tuple[str, str]] = {
 
 STRICT_MODEL_MAP = {
     # ── 讯飞星火 MaaS 企业版（xfyun）──
-    "glm": "xopglm51",
+    "glm": "xopglm52",
     "glm-5.1": "xopglm51",
     "glm51": "xopglm51",
     "xopglm51": "xopglm51",
+    # GLM-5.2 on the working xfyun line (default via QCSA 0000)
+    "glm-5.2-xfyun": "xopglm52",
+    "glm52": "xopglm52",
+    "xopglm52": "xopglm52",
+    # Bare glm-5.2 / glm2 alias → dedicated 128K "glm2" line (88.api456.me)
+    "glm-5.2": "glm-5.2",
+    "glm2": "glm-5.2",
     "glm-5": "GLM-5",
     "glm-5-turbo": "GLM-5-Turbo",
     "glm-turbo": "GLM-5-Turbo",
@@ -90,6 +97,9 @@ STRICT_MODEL_MAP = {
 MODEL_SERVICE_MAP = {
     # 讯飞星火 MaaS 企业版（所有 xop* 模型共用同一 API key + base_url）
     "xopglm51": "llm.glm51.enterprise",
+    "xopglm52": "llm.glm51.enterprise",
+    # 独立 glm2 线（新购 128K key，端点 88.api456.me；模型名对上游即 glm-5.2）
+    "glm-5.2": "llm.glm2",
     "GLM-5": "llm.glm51.enterprise",
     "GLM-5-Turbo": "llm.glm51.enterprise",
     "xopkimik26": "llm.glm51.enterprise",
@@ -130,7 +140,14 @@ CAPABILITY_FALLBACK: dict[str, tuple[str, str]] = {
 # 保持单源以免把图片请求路由到非视觉模型。
 # key = resolve_model_and_service() 解析出的上游模型名（full_model）。
 LOAD_BALANCE_GROUPS: dict[str, list[dict]] = {
-    # 均衡/旗舰对话（0000 / 1000）：GLM-5.1 主，MiniMax-M3 与 Qwen3.7 分流
+    # 均衡/旗舰对话（0000 / 1000 → GLM-5.2）：两条 GLM-5.2 线路（xfyun xopglm52
+    # + 独立 glm2 线 88.api456.me）**负载均衡**，各 50%；MiniMax 作 overflow 兜底。
+    "xopglm52": [
+        {"service": "llm.glm51.enterprise", "model": "xopglm52", "weight": 50},
+        {"service": "llm.glm2", "model": "glm-5.2", "weight": 50},
+        {"service": "llm.minimax", "model": "MiniMax-M3", "weight": 0},
+    ],
+    # 旧 GLM-5.1 组（保留：显式请求 glm-5.1/xopglm51 时仍走 5.1）
     "xopglm51": [
         {"service": "llm.glm51.enterprise", "model": "xopglm51", "weight": 60},
         {"service": "llm.minimax", "model": "MiniMax-M3", "weight": 20},

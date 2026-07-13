@@ -44,12 +44,15 @@ from app.api.proxy import (
     _SKIP_REQUEST_HEADERS,
 )
 from app.core.model_catalog import MODEL_CATALOG
-from app.core.local_model_routing import (
+from app.core.cloud_embed_routing import (
     EMBED_CODE,
-    LOCAL_SERVICE_NAME,
+    EMBED_SERVICE_NAME,
     normalize_embed_code,
+    resolve_cloud_embed_model,
+)
+from app.core.local_model_routing import (
+    LOCAL_SERVICE_NAME,
     ollama_base_url,
-    resolve_ollama_embed_model,
     resolve_ollama_chat_model,
 )
 from app.core.model_routing import (
@@ -248,8 +251,10 @@ def _resolve_binding_and_secret(
 @router.post("/embeddings")
 async def unified_embeddings(
     request: Request,
+    session: Annotated[Session, Depends(get_db)],
+    vault: Annotated[VaultService, Depends(get_vault)],
 ) -> Response:
-    """Forward embeddings using opaque code E000 (one embedding model slot)."""
+    """Forward embeddings using opaque code E000 (cloud DashScope slot)."""
     body = await request.body()
     try:
         obj = json.loads(body.decode("utf-8"))
@@ -267,15 +272,54 @@ async def unified_embeddings(
             "code": "UNKNOWN_MODEL",
         })
 
-    obj["model"] = resolve_ollama_embed_model(embed_code)
-    body = json.dumps(obj).encode("utf-8")
-    upstream_url = f"{ollama_base_url()}/v1/embeddings"
+    if not vault.is_unlocked:
+        raise HTTPException(
+            status_code=423,
+            detail={"detail": "Vault is locked", "code": "VAULT_LOCKED"},
+        )
 
-    forward_headers = {
+    service_name = EMBED_SERVICE_NAME
+    obj["model"] = resolve_cloud_embed_model(embed_code)
+    body = json.dumps(obj).encode("utf-8")
+
+    binding = session.scalars(
+        select(Binding)
+        .where(Binding.service_name == service_name, Binding.project_id.is_(None))
+    ).first()
+    if binding is None:
+        raise HTTPException(status_code=503, detail={
+            "detail": f"Binding '{service_name}' not configured for embedding.",
+            "code": "BINDING_NOT_FOUND",
+        })
+
+    secret = session.scalars(
+        select(Secret)
+        .where(Secret.key == binding.secret_ref_key, Secret.project_id.is_(None))
+    ).first()
+    if secret is None or not secret.enabled:
+        raise HTTPException(status_code=503, detail={
+            "detail": f"Secret for binding '{service_name}' is missing or disabled.",
+            "code": "SECRET_UNAVAILABLE",
+        })
+
+    raw_base = (secret.base_url or "").strip()
+    if not raw_base:
+        raise HTTPException(status_code=503, detail={
+            "detail": f"No base_url configured for binding '{service_name}'.",
+            "code": "MISSING_BASE_URL",
+        })
+
+    plaintext = vault.decrypt_secret_value(secret.value)
+    auth_extra = _outgoing_auth_header(binding, plaintext)
+
+    upstream_url = f"{raw_base.rstrip('/')}/embeddings"
+
+    forward_headers: dict[str, str] = {
         k: v for k, v in request.headers.items()
         if k.lower() not in _SKIP_REQUEST_HEADERS and k.lower() != "authorization"
     }
     forward_headers["content-type"] = "application/json"
+    forward_headers.update(auth_extra)
 
     client = _get_shared_client(request)
     try:
@@ -286,12 +330,12 @@ async def unified_embeddings(
             timeout=_NON_STREAM_TIMEOUT,
         )
     except httpx.TimeoutException:
-        return JSONResponse(status_code=504, content={"error": "Ollama embeddings timed out"})
+        return JSONResponse(status_code=504, content={"error": "Cloud embeddings timed out"})
     except httpx.RequestError as exc:
         return JSONResponse(status_code=502, content={"error": str(exc)})
 
     if resp.status_code >= 400:
-        return _wrap_upstream_error(resp.status_code, resp.content, "", LOCAL_SERVICE_NAME,
+        return _wrap_upstream_error(resp.status_code, resp.content, plaintext, service_name,
                                     upstream_headers=resp.headers)
 
     out = _rewrite_response_model(resp.content, embed_code)

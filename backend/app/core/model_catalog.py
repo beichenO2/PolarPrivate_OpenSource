@@ -12,11 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.local_model_routing import (
-    EMBED_CODE,
-    LOCAL_SERVICE_NAME,
-    all_l_codes,
-)
+from app.core.cloud_embed_routing import EMBED_CODE, EMBED_SERVICE_NAME
+from app.core.local_model_routing import LOCAL_SERVICE_NAME, all_l_codes
 
 
 @dataclass
@@ -30,10 +27,23 @@ class ModelEntry:
 MODEL_CATALOG: list[ModelEntry] = [
     # ── 讯飞星火 MaaS 企业版（xfyun）─────────────────────────────────────
     ModelEntry(
+        id="xopglm52",
+        provider="xfyun",
+        service="llm.glm51.enterprise",
+        description="GLM-5.2（默认对话模型，QCSA 0000/1000），xfyun 现已支持；别名 glm。",
+    ),
+    ModelEntry(
         id="xopglm51",
         provider="xfyun",
         service="llm.glm51.enterprise",
-        description="GLM-5.1（200K 上下文），国内最强编程模型；别名 glm / glm-5.1 / glm51。",
+        description="GLM-5.1（200K 上下文）；显式别名 glm-5.1 / glm51。",
+    ),
+    # ── glm2 独立线（新购 128K key，端点 88.api456.me）──────────────────
+    ModelEntry(
+        id="glm-5.2",
+        provider="glm2",
+        service="llm.glm2",
+        description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。填入 key 后可用。",
     ),
     ModelEntry(
         id="xopkimik26",
@@ -81,11 +91,11 @@ MODEL_CATALOG: list[ModelEntry] = [
     ),
     # ── Cloud capability codes (4-bit QCSA; opaque to callers) ──────────────
     # Q=Quality C=Context S=Speed A=Agentic (each 0 or 1)
-    ModelEntry(id="0000", provider="capability", service="llm.glm51.enterprise", description="默认均衡 → GLM-5.1（200K）"),
+    ModelEntry(id="0000", provider="capability", service="llm.glm51.enterprise", description="默认均衡 → GLM-5.2（xfyun + glm2 两线负载均衡 50/50）"),
     ModelEntry(id="0010", provider="capability", service="llm.glm51.enterprise", description="快速 → DS V4 Flash（1M 上下文）"),
     ModelEntry(id="0100", provider="capability", service="llm.glm51.enterprise", description="长上下文 → DS V4 Pro（1M）"),
     ModelEntry(id="0110", provider="capability", service="llm.minimax", description="快速+长上下文 → MiniMax-M3"),
-    ModelEntry(id="1000", provider="capability", service="llm.glm51.enterprise", description="旗舰质量 → GLM-5.1（200K）"),
+    ModelEntry(id="1000", provider="capability", service="llm.glm51.enterprise", description="旗舰质量 → GLM-5.2"),
     ModelEntry(id="1110", provider="capability", service="llm.minimax", description="旗舰+深度推理 → MiniMax-M3-Thinking"),
     # Agentic codes (A=1)
     ModelEntry(id="0001", provider="capability", service="llm.glm51.enterprise", description="Agent 均衡 → DS V4 Flash（tool call 快准）"),
@@ -109,8 +119,8 @@ MODEL_CATALOG: list[ModelEntry] = [
     ],
     ModelEntry(
         id=EMBED_CODE,
-        provider="local",
-        service=LOCAL_SERVICE_NAME,
-        description="Local embedding model slot (POST /v1/embeddings only).",
+        provider="cloud",
+        service=EMBED_SERVICE_NAME,
+        description="Cloud embedding slot → DashScope text-embedding-v3 (POST /v1/embeddings only).",
     ),
 ]
