@@ -20,7 +20,37 @@ def test_start_command() -> None:
     result = runner.invoke(app_cli, ["start", "--help"])
     assert result.exit_code == 0
     out = (result.stdout or "").lower()
-    assert "host" in out or "port" in out or "uvicorn" in out
+    assert "polarprocess" in out or "lifecycle" in out
+
+
+def test_start_delegates_to_exact_polarprocess_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, str]] = []
+
+    class Response:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"ok": True, "pid": 12345}
+
+    def fake_get(url: str, **_: object) -> Response:
+        calls.append(("GET", url))
+        return Response()
+
+    def fake_post(url: str, **_: object) -> Response:
+        calls.append(("POST", url))
+        return Response()
+
+    monkeypatch.setattr("app.cli.httpx.get", fake_get)
+    monkeypatch.setattr("app.cli.httpx.post", fake_post)
+
+    result = CliRunner().invoke(app_cli, ["start"])
+
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        ("GET", "http://127.0.0.1:11055/api/health"),
+        ("POST", "http://127.0.0.1:11055/api/services/privportal-backend/start"),
+    ]
 
 
 def test_init_db_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec "$(cd "$(dirname "$0")" && pwd)/start.sh" stop
+
+POLARPROCESS_URL=${POLARPROCESS_URL:-http://127.0.0.1:11055}
+SERVICE_ID=privportal-backend
+curl -fsS --max-time 3 "$POLARPROCESS_URL/api/health" >/dev/null
+exec curl -fsS -X POST "$POLARPROCESS_URL/api/services/$SERVICE_ID/stop"

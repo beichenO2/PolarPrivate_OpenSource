@@ -2,7 +2,7 @@
   "name": "PolarPrivate",
   "_meta": {
     "schema_version": "1.0",
-    "last_synced_at": "2026-06-10T00:00:00+08:00"
+    "last_synced_at": "2026-07-16T22:35:00+08:00"
   },
   "$schema": "https://polarisor.dev/polaris.schema.json",
   "description": "本地隐私代理与脱敏门户 — 加密存储 Secret/Identity，通过反向代理注入密钥，Agent 输出自动脱敏",
@@ -708,6 +708,44 @@
         }
       ],
       "blockers": []
+    },
+    {
+      "id": "R10",
+      "need": "运行时端口与进程统一治理",
+      "approach": "将 PolarPrivate Backend 与 Frontend 拆分为 privportal-backend 和 privportal-frontend 两个前台服务；端口仅由 PolarPort 分配，生命周期仅由 PolarProcess 管理。PolarPrivate4Taoci 保持为 ~/Desktop/Server 仓库的独立服务，Vault 定时备份继续由 PolarProcess cron 管理。",
+      "features": [
+        {
+          "name": "runtime_governance",
+          "status": "done",
+          "tech": [
+            "PolarPort",
+            "PolarProcess",
+            "Bash",
+            "Vite",
+            "FastAPI"
+          ],
+          "behavior": [
+            "privportal-backend 仅由 PolarProcess 管理并通过 PolarPort 申请 preferred port 12790",
+            "privportal-frontend 仅由 PolarProcess 管理并通过 PolarPort 申请 preferred port 12795",
+            "两个 launcher 均以前台 exec 运行，不使用 nohup、后台符号、PID 文件或直接信号",
+            "旧 backend/Start 生命周期脚本只调用精确 PolarProcess service ID",
+            "迁移只操作 PolarPrivate 的两个精确服务，不重启 polarprivate4taoci，不执行 privportal-vault-sync"
+          ],
+          "test_status": "passed",
+          "evidence": [
+            "2026-07-16: baseline audit drift=1 (missing root Start launcher); PolarPort and PolarProcess healthy; backend/frontend/PolarPrivate4Taoci listeners are running with verified PIDs 15958/23965/29654",
+            "2026-07-16: baseline frontend build, TypeScript SDK 21/21 and Python SDK 17/17 passed; backend baseline 315/327 with 12 pre-existing application failures",
+            "2026-07-16: ~/Desktop/Server/PolarPrivate4Taoci belongs to the separate ~/Desktop/Server repository with active unrelated changes; excluded from this repository migration boundary",
+            "2026-07-16: TDD RED failed on missing root launcher; GREEN passed the runtime contract, six shell syntax checks, CLI 5/5, frontend build, TypeScript SDK 21/21 and Python SDK 17/17",
+            "2026-07-16: final backend suite 316/328; the same 12 pre-existing onboarding/load-balance/redaction/Cursor-gateway/vault failures remained, with one new runtime-governance CLI test passing",
+            "2026-07-16: legacy preferred reservations polarprivate:12790 and polarprivate-frontend:12795 initially caused governed launchers to reject fallback port 8000; dedicated target-only migration replaced them with privportal-backend and privportal-frontend reservations",
+            "2026-07-16: privportal-backend changed from PID 15958 to verified PID 34141 through its exact PolarProcess restart endpoint; PolarPort now has exactly one active privportal-backend/PolarPrivate owner on 12790 and backend health passes",
+            "2026-07-16: original frontend PID 23965 exited independently before registration; after backend owner migration, exact privportal-frontend start converged to verified PID 34874 with exactly one active owner on 12795 and frontend health passes",
+            "2026-07-16: polarprivate4taoci stayed running at verified PID 29654 throughout; privportal-vault-sync was not executed; final project governance audit compliant"
+          ]
+        }
+      ],
+      "blockers": []
     }
   ],
   "depends_on": [],
@@ -756,9 +794,34 @@
   ],
   "service_management": {
     "install_command": "cd backend && pip install -r requirements.txt",
-    "start_command": "bash ~/Polarisor/PolarPrivate/backend/Start/start.sh start",
-    "restart_command": "bash ~/Polarisor/PolarPrivate/backend/Start/restart.sh",
-    "health_endpoint": "http://127.0.0.1:12790/health"
+    "start_command": "bash Start/backend.sh",
+    "restart_command": "bash Start/backend.sh",
+    "health_endpoint": "http://127.0.0.1:12790/health",
+    "preferred_port": 12790,
+    "service_id": "privportal-backend",
+    "auto_start": true,
+    "process_mode": "foreground_command",
+    "services": [
+      {
+        "service_id": "privportal-backend",
+        "name": "PolarPrivate Backend",
+        "start_command": "bash Start/backend.sh",
+        "health_endpoint": "http://127.0.0.1:12790/health",
+        "preferred_port": 12790,
+        "auto_start": true,
+        "process_mode": "foreground_command"
+      },
+      {
+        "service_id": "privportal-frontend",
+        "name": "PolarPrivate Frontend",
+        "start_command": "bash Start/frontend.sh",
+        "health_endpoint": "http://127.0.0.1:12795/",
+        "preferred_port": 12795,
+        "auto_start": true,
+        "process_mode": "foreground_command"
+      }
+    ],
+    "notes": "PolarPrivate4Taoci belongs to ~/Desktop/Server and is migrated separately; privportal-vault-sync remains a PolarProcess-managed no-port cron task"
   },
   "depended_by": [
     "SOTAgent",

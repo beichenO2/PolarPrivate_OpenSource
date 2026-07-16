@@ -7,17 +7,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-import logging
-
+import httpx
 import typer
-import uvicorn
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 from typer import Typer
 
 from app.core.config import Settings
 
-_log = logging.getLogger(__name__)
 from app.db.models import DbMetadata
 from app.db.session import create_sync_engine
 from app.services.demo_seed import seed_demo_data
@@ -38,47 +35,16 @@ def _resolve_master_password() -> str:
 
 @app_cli.command()
 def start() -> None:
-    """Run the ASGI app with uvicorn (host/port from Settings).
-
-    If Alembic migration ``004_app_settings`` is applied and row ``app_settings.id=1``
-    has a non-null ``api_port``, that value overrides ``PRIVPORTAL_API_PORT`` for this
-    process. Persisted port changes take effect on the next start (STNG-01). If the
-    table is missing (pre-migration), environment defaults are used.
-    """
-    settings = Settings()
-    preferred = settings.api_port
-    try:
-        from app.db.models import AppSettings
-        from app.db.session import SessionLocal
-
-        session = SessionLocal()
-        try:
-            row = session.get(AppSettings, 1)
-            if row is not None and row.api_port is not None:
-                preferred = row.api_port
-        finally:
-            session.close()
-    except Exception:
-        pass
-
-    sys.path.insert(0, str(BACKEND_ROOT.parent.parent / "PolarPort" / "src" / "sdk" / "python"))
-    from polarisor_port_sdk import claim_port_sync, register_capabilities_sync
-    port = claim_port_sync(service="polarprivate", project="PolarPrivate", preferred=preferred)
-
-    cap_path = str(BACKEND_ROOT.parent / "capabilities.json")
-    if Path(cap_path).exists():
-        try:
-            register_capabilities_sync(cap_path)
-        except Exception as e:
-            _log.warning("capability registration failed (non-fatal): %s", e)
-
-    uvicorn.run(
-        "app.main:app",
-        host=settings.api_host,
-        port=port,
-        factory=False,
-        reload=False,
+    """Request the PolarProcess-managed backend lifecycle start."""
+    base_url = os.environ.get("POLARPROCESS_URL", "http://127.0.0.1:11055")
+    health = httpx.get(f"{base_url}/api/health", timeout=3.0)
+    health.raise_for_status()
+    response = httpx.post(
+        f"{base_url}/api/services/privportal-backend/start",
+        timeout=30.0,
     )
+    response.raise_for_status()
+    typer.echo("PolarProcess accepted the privportal-backend start request")
 
 
 @app_cli.command()

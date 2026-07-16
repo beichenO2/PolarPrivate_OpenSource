@@ -1,126 +1,21 @@
 #!/usr/bin/env bash
-# PolarPrivate backend lifecycle — PolarProcess + launchd compatible.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-PID_FILE="$SCRIPT_DIR/.pid"
-SERVICE_NAME="privportal-backend"
-PROJECT="PolarPrivate"
-PREFERRED_PORT=12790
-VENV="$PROJECT_DIR/.venv/bin/privportal"
+POLARPROCESS_URL=${POLARPROCESS_URL:-http://127.0.0.1:11055}
+SERVICE_ID=privportal-backend
+ACTION=${1:-start}
 
-cd "$PROJECT_DIR"
+curl -fsS --max-time 3 "$POLARPROCESS_URL/api/health" >/dev/null
 
-source "$PROJECT_DIR/../../Agent_core/scripts/port-claim.sh"
-PORT=$(claim_port "$SERVICE_NAME" "$PROJECT" "$PREFERRED_PORT")
-HEALTH_URL="http://127.0.0.1:${PORT}/health"
-LOG_FILE="$SCRIPT_DIR/polarprivate-backend.log"
-mkdir -p "$SCRIPT_DIR"
-
-do_start() {
-  if [ ! -x "$VENV" ]; then
-    echo "Missing venv at $VENV — run: cd backend && pip install -e ." >&2
-    exit 1
-  fi
-
-  OCCUPANT_PID=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -P -n -t 2>/dev/null | head -1 || true)
-  if [ -n "$OCCUPANT_PID" ]; then
-    echo "Already running pid=$OCCUPANT_PID port=$PORT"
-    exit 0
-  fi
-
-  if [ -f "$PID_FILE" ]; then
-    OLD_PID=$(cat "$PID_FILE" 2>/dev/null || true)
-    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-      echo "Already running pid=$OLD_PID port=$PORT"
-      exit 0
-    fi
-    rm -f "$PID_FILE"
-  fi
-
-  export PRIVPORTAL_API_HOST=127.0.0.1
-  export PRIVPORTAL_API_PORT="$PORT"
-
-  if [ "${LAUNCHD:-}" = "1" ]; then
-    exec "$VENV" start >> "$LOG_FILE" 2>&1
-  fi
-
-  nohup "$VENV" start >> "$LOG_FILE" 2>&1 &
-  DAEMON_PID=$!
-  echo "$DAEMON_PID" > "$PID_FILE"
-  # Early stdout for PolarProcess script parser (avoids orphan scan if health wait is slow)
-  echo "pid=$DAEMON_PID port=$PORT"
-
-  sleep 1
-  if ! kill -0 "$DAEMON_PID" 2>/dev/null; then
-    echo "Process exited immediately" >&2
-    tail -20 "$LOG_FILE" >&2 || true
-    rm -f "$PID_FILE"
-    exit 1
-  fi
-
-  # Fast return: PolarProcess verifies via health_check_url; avoid 30s wait timeouts.
-  if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then
-    echo "Started pid=$DAEMON_PID port=$PORT"
-    exit 0
-  fi
-
-  echo "Started pid=$DAEMON_PID port=$PORT"
-  exit 0
-}
-
-do_stop() {
-  local pids=""
-  if [ -f "$PID_FILE" ]; then pids="$(cat "$PID_FILE" 2>/dev/null || true)"; fi
-  pids="$pids $(lsof -iTCP:"$PORT" -sTCP:LISTEN -P -n -t 2>/dev/null || true)"
-  pids=$(printf '%s\n' $pids | grep -E '^[0-9]+$' | sort -u || true)
-
-  if [ -z "$pids" ]; then
-    echo "Not running"
-    rm -f "$PID_FILE"
-    return 0
-  fi
-
-  for p in $pids; do kill "$p" 2>/dev/null || true; done
-  for i in $(seq 1 10); do
-    local alive=""
-    for p in $pids; do kill -0 "$p" 2>/dev/null && alive="$alive $p"; done
-    [ -z "$alive" ] && break
-    sleep 1
-  done
-  for p in $pids; do kill -0 "$p" 2>/dev/null && kill -9 "$p" 2>/dev/null || true; done
-  rm -f "$PID_FILE"
-  echo "Stopped"
-}
-
-do_restart() { do_stop; do_start; }
-
-do_status() {
-  local pid=""
-  if [ -f "$PID_FILE" ]; then pid=$(cat "$PID_FILE" 2>/dev/null || true); fi
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-    echo "Running pid=$pid port=$PORT"
-    exit 0
-  fi
-  local occ
-  occ=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -P -n -t 2>/dev/null | head -1 || true)
-  if [ -n "$occ" ]; then
-    echo "Running pid=$occ port=$PORT (PID file stale)"
-    echo "$occ" > "$PID_FILE"
-    exit 0
-  fi
-  echo "Not running"
-  exit 1
-}
-
-case "${1:-start}" in
-  start)   do_start   ;;
-  stop)    do_stop; exit 0 ;;
-  restart) do_restart ;;
-  status)  do_status  ;;
+case "$ACTION" in
+  start|stop|restart)
+    exec curl -fsS -X POST "$POLARPROCESS_URL/api/services/$SERVICE_ID/$ACTION"
+    ;;
+  status)
+    exec curl -fsS "$POLARPROCESS_URL/api/services/$SERVICE_ID"
+    ;;
   *)
     echo "Usage: bash Start/start.sh [start|stop|restart|status]" >&2
-    exit 1
+    exit 2
     ;;
 esac
