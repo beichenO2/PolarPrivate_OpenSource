@@ -40,74 +40,6 @@ from app.services.vault import VaultService
 
 
 
-_UPSTREAM_LIMITS = httpx.Limits(
-    max_connections=20,
-    max_keepalive_connections=10,
-    keepalive_expiry=30,
-)
-
-
-def _build_upstream_mounts() -> dict[str, httpx.AsyncBaseTransport] | None:
-    """
-    上游出网代理策略。**默认 None = 全部直连**，与历史 ``trust_env=False`` 行为完全一致，
-    不设任何环境变量时零回归。
-
-    ``trust_env=False`` 只是让 httpx 忽略 ``HTTP_PROXY`` / ``HTTPS_PROXY`` / ``ALL_PROXY``；
-    它是**硬编码直连**，无法为「某个上游必须经 Clash 才可达」的情况开口子。本函数把这件事
-    变成可配置的，两个方向都能表达：
-
-    ==========================================  ===================================================
-    ``PRIVPORTAL_UPSTREAM_PROXY``               代理地址，如 ``http://127.0.0.1:7890``。**不设则全部直连。**
-    ``PRIVPORTAL_UPSTREAM_PROXY_HOSTS``         白名单：逗号分隔的 host，**仅**这些走代理，其余直连。
-    ``PRIVPORTAL_UPSTREAM_DIRECT_HOSTS``        黑名单：未设白名单时，全局走代理，**但**这些 host 强制直连。
-    ==========================================  ===================================================
-
-    例：只让中转域名走 Clash，讯飞/阿里保持直连 ::
-
-        PRIVPORTAL_UPSTREAM_PROXY=http://127.0.0.1:7890
-        PRIVPORTAL_UPSTREAM_PROXY_HOSTS=88.api456.me
-
-    例：全局走 Clash，但国内直连 ::
-
-        PRIVPORTAL_UPSTREAM_PROXY=http://127.0.0.1:7890
-        PRIVPORTAL_UPSTREAM_DIRECT_HOSTS=maas-coding-api.cn-huabei-1.xf-yun.com,dashscope.aliyuncs.com
-
-    httpx 按 pattern 具体度匹配（``all://<host>`` 优先于 ``all://``），与 dict 顺序无关。
-    """
-    proxy_url = os.environ.get("PRIVPORTAL_UPSTREAM_PROXY", "").strip()
-    if not proxy_url:
-        return None
-
-    def _hosts(name: str) -> list[str]:
-        return [h.strip() for h in os.environ.get(name, "").split(",") if h.strip()]
-
-    proxy_hosts = _hosts("PRIVPORTAL_UPSTREAM_PROXY_HOSTS")
-    direct_hosts = _hosts("PRIVPORTAL_UPSTREAM_DIRECT_HOSTS")
-
-    def direct() -> httpx.AsyncBaseTransport:
-        return httpx.AsyncHTTPTransport(limits=_UPSTREAM_LIMITS)
-
-    def viaproxy() -> httpx.AsyncBaseTransport:
-        return httpx.AsyncHTTPTransport(limits=_UPSTREAM_LIMITS, proxy=proxy_url)
-
-    mounts: dict[str, httpx.AsyncBaseTransport] = {}
-    if proxy_hosts:
-        for h in proxy_hosts:
-            mounts[f"all://{h}"] = viaproxy()
-        mounts["all://"] = direct()
-        policy = f"whitelist via {proxy_url}: {', '.join(proxy_hosts)}; others direct"
-    else:
-        for h in direct_hosts:
-            mounts[f"all://{h}"] = direct()
-        mounts["all://"] = viaproxy()
-        policy = f"all via {proxy_url}" + (f"; direct: {', '.join(direct_hosts)}" if direct_hosts else "")
-
-    from app.logging_config import get_logger
-
-    get_logger(__name__).info("upstream_proxy_policy", policy=policy)
-    return mounts
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configure_logging()
@@ -147,13 +79,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     finally:
         session.close()
 
-    # trust_env=False 保留：永不读 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY，代理策略只由
-    # PRIVPORTAL_UPSTREAM_PROXY* 显式声明（见 _build_upstream_mounts）。
-    # mounts=None（默认）时行为与改动前逐字一致 —— 全部直连。
     app.state.httpx_client = httpx.AsyncClient(
         trust_env=False,
-        mounts=_build_upstream_mounts(),
-        limits=_UPSTREAM_LIMITS,
+        limits=httpx.Limits(
+            max_connections=20,
+            max_keepalive_connections=10,
+            keepalive_expiry=30,
+        ),
         timeout=httpx.Timeout(connect=10.0, read=300.0, write=30.0, pool=10.0),
         follow_redirects=True,
     )
