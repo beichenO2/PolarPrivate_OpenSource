@@ -20,8 +20,8 @@ def test_seed_demo_creates_project_and_data(db_session):
     result = seed_demo_data(db_session, vault)
     db_session.commit()
 
-    assert result["secrets"] >= 2
-    assert result["bindings"] >= 2
+    assert result["secrets"] >= 1
+    assert result["bindings"] >= 1
     assert result["project_id"] is not None
 
     project = db_session.scalar(select(Project).where(Project.name == DEMO_PROJECT_NAME))

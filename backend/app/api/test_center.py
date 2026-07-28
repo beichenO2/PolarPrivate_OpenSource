@@ -15,7 +15,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_unlocked_vault
-from app.core.model_routing import get_all_registered_services
 from app.db.models import Binding, BindingSecret, LLMServiceStatus, Secret
 from app.logging_config import sanitize_user_facing_string
 from app.services.sign_providers import PROVIDERS
@@ -65,6 +64,17 @@ class LLMServiceStatusOut(BaseModel):
 class LLMStatusResponse(BaseModel):
     """Response for LLM status query."""
     services: list[LLMServiceStatusOut]
+
+
+def _configured_llm_services(session: Session) -> list[str]:
+    """LLM services that have a global (non-project) binding configured."""
+    rows = session.scalars(
+        select(Binding.service_name).where(
+            Binding.project_id.is_(None),
+            Binding.service_name.like("llm.%"),
+        )
+    ).all()
+    return sorted(set(rows))
 
 
 def _update_service_status(
@@ -160,11 +170,12 @@ async def get_llm_status(
     session: Annotated[Session, Depends(get_db)],
     _vault: Annotated[VaultService, Depends(require_unlocked_vault)],
 ) -> LLMStatusResponse:
-    """Get status for all registered LLM services (R11).
+    """Get status for configured LLM bindings (R11).
 
-    Returns the last call status for each service registered in model_routing.
+    Only services with an active global binding are listed — removed keys/bindings
+    no longer appear here.
     """
-    registered_services = get_all_registered_services()
+    registered_services = _configured_llm_services(session)
 
     status_rows = session.scalars(
         select(LLMServiceStatus).where(LLMServiceStatus.service_name.in_(registered_services))
@@ -201,29 +212,18 @@ async def get_llm_status(
 async def _run_llm_connectivity(session: Session) -> TestCenterRunResponse:
     """Test LLM service connectivity by verifying bindings and secrets.
 
-    This test verifies that each registered LLM service has a valid binding
-    and secret configured. Updates LLMServiceStatus with test results.
+    This test verifies that each configured LLM binding has a valid secret.
+    Updates LLMServiceStatus with test results.
     """
-    registered_services = get_all_registered_services()
+    registered_services = _configured_llm_services(session)
     results: list[TestResultItem] = []
 
-    for svc_name in sorted(registered_services):
+    for svc_name in registered_services:
         t0 = time.perf_counter()
 
         binding = session.scalars(
             select(Binding).where(Binding.service_name == svc_name, Binding.project_id.is_(None))
         ).first()
-
-        if binding is None:
-            latency_ms = int((time.perf_counter() - t0) * 1000)
-            results.append(TestResultItem(
-                name=f"llm:{svc_name}",
-                status="fail",
-                message=_sanitize(f"Binding not configured for {svc_name}"),
-                duration_ms=latency_ms,
-            ))
-            _update_service_status(session, svc_name, is_error=True, error_message="Binding not configured", latency_ms=latency_ms)
-            continue
 
         secret = session.scalars(
             select(Secret).where(Secret.key == binding.secret_ref_key, Secret.project_id.is_(None))

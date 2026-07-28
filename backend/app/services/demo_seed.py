@@ -14,7 +14,7 @@ DEMO_PROJECT_NAME = "Demo Project"
 
 
 def seed_demo_data(session: Session, vault: VaultService) -> dict:
-    """Create or skip the demo project: 1 secret, 1 binding (Aliyun only; CTYun removed).
+    """Create or skip the demo project: 1 secret, 1 binding (MiniMax example).
 
     Idempotent: if a project named ``Demo Project`` already exists, returns its id and
     current row counts without inserting duplicates. Caller must ``commit`` when appropriate
@@ -36,7 +36,7 @@ def seed_demo_data(session: Session, vault: VaultService) -> dict:
         Project(
             id=project_id,
             name=DEMO_PROJECT_NAME,
-            description="Demo import (D-110): Aliyun CodingPlan binding only.",
+            description="Demo import (D-110): MiniMax binding example.",
         )
     )
 
@@ -44,10 +44,10 @@ def seed_demo_data(session: Session, vault: VaultService) -> dict:
         Secret(
             id=str(uuid.uuid4()),
             project_id=project_id,
-            key="secret.aliyun.CodingPlan.api_key",
-            value=vault.encrypt_secret_value("demo-codingplan-api-key-placeholder"),
+            key="secret.minimax.demo.api_key",
+            value=vault.encrypt_secret_value("demo-minimax-api-key-placeholder"),
             category="proxy",
-            base_url="https://coding.dashscope.aliyuncs.com/v1",
+            base_url="https://api.minimaxi.com/v1",
         )
     )
 
@@ -55,8 +55,8 @@ def seed_demo_data(session: Session, vault: VaultService) -> dict:
         Binding(
             id=str(uuid.uuid4()),
             project_id=project_id,
-            service_name="llm.aliyun.codingplan",
-            secret_ref_key="secret.aliyun.CodingPlan.api_key",
+            service_name="llm.minimax",
+            secret_ref_key="secret.minimax.demo.api_key",
         )
     )
 
