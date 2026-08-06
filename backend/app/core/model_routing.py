@@ -71,8 +71,8 @@ STRICT_MODEL_MAP = {
     "kimi": "xopkimik26",
     "kimi-k2.6": "xopkimik26",
     "xopkimik26": "xopkimik26",
-    "deepseek-v4-flash": "xopdeepseekv4flash",
-    "ds-v4-flash": "xopdeepseekv4flash",
+    "deepseek-v4-flash": "deepseek-v4-flash",
+    "ds-v4-flash": "deepseek-v4-flash",
     "xopdeepseekv4flash": "xopdeepseekv4flash",
     "deepseek-v4-pro": "xopdeepseekv4pro",
     "ds-v4-pro": "xopdeepseekv4pro",
@@ -105,6 +105,8 @@ MODEL_SERVICE_MAP = {
     "xopkimik26": "llm.glm51.enterprise",
     "xopdeepseekv4flash": "llm.glm51.enterprise",
     "xopdeepseekv4pro": "llm.glm51.enterprise",
+    # DeepSeek 官方 API（https://api.deepseek.com）— 仅 Flash
+    "deepseek-v4-flash": "llm.deepseek",
     # 阿里云 codingPlan
     "qwen3.7-plus": "llm.aliyun.codingplan",
     # 阿里云 DashScope VL 系列

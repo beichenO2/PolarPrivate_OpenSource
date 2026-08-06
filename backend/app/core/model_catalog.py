@@ -63,6 +63,13 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.glm51.enterprise",
         description="Deepseek V4 Pro（1M 上下文），旗舰推理+编程，综合最强国模。",
     ),
+    # ── DeepSeek 官方 API（api.deepseek.com）────────────────────────────────
+    ModelEntry(
+        id="deepseek-v4-flash",
+        provider="deepseek",
+        service="llm.deepseek",
+        description="DeepSeek V4 Flash 官方 API（DeepSeek-V4-Flash-0731，1M 上下文），快速 + Agent 能力突出。",
+    ),
     # ── MiniMax ───────────────────────────────────────────────────────────────
     ModelEntry(
         id="MiniMax-M3",

@@ -41,6 +41,7 @@ _SERVICE_LIMITS: dict[str, ServiceLimitConfig] = {
     "llm.aliyun.codingplan": ServiceLimitConfig(max_concurrent=8, rpm=60),
     "llm.aliyun.dashscope":  ServiceLimitConfig(max_concurrent=50, rpm=600),
     "llm.minimax":           ServiceLimitConfig(max_concurrent=12, rpm=60),
+    "llm.deepseek":          ServiceLimitConfig(max_concurrent=10, rpm=60),
 }
 
 _ENV_PREFIX = "PRIVPORTAL_RL_"

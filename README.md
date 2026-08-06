@@ -4,6 +4,16 @@
 
 ---
 
+## Agent 接入（Skill）
+
+Cursor / Codex Agent 请使用本仓库 Skill（已可 symlink 到 `~/.cursor/skills/polarprivate`）：
+
+- Skill：`.cursor/skills/polarprivate/SKILL.md`
+- 手册：[`docs/agent-playbook.md`](docs/agent-playbook.md)
+- 开槽流程：Skill → `references/slot-provisioning.md`（先 API 建占位 Secret + Binding，再用 `【用户必做·已开槽】` 请用户粘贴 Key）
+
+明文 Key 不得进入 Agent 工作区；LLM 优先走 `http://127.0.0.1:12790/v1` + QCSA 能力码。
+
 ## 安装
 
 ### Polarisor 生态（推荐）
