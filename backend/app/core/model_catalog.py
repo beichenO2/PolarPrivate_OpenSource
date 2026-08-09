@@ -64,11 +64,79 @@ MODEL_CATALOG: list[ModelEntry] = [
         description="Deepseek V4 Pro（1M 上下文），旗舰推理+编程，综合最强国模。",
     ),
     # ── DeepSeek 官方 API（api.deepseek.com）────────────────────────────────
+    # deepseek-v4-flash / deepseek-v4-pro 现由 Nebula 网关承载，见下方 llm.nebula。
+    # ── Nebula Gateway（OpenAI 兼容中转）───────────────────────────────────
+    ModelEntry(
+        id="gpt-5.5-pro",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.5 Pro via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4-pro",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 Pro via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.5",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.5 via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4-mini",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 Mini via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4-mini-2026-03-17",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 Mini (2026-03-17) via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4-nano",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 Nano via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="gpt-5.4-nano-2026-03-17",
+        provider="nebula",
+        service="llm.nebula",
+        description="GPT-5.4 Nano (2026-03-17) via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="claude-sonnet-4-6",
+        provider="nebula",
+        service="llm.nebula",
+        description="Claude Sonnet 4.6 via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="claude-opus-4-6",
+        provider="nebula",
+        service="llm.nebula",
+        description="Claude Opus 4.6 via Nebula gateway。",
+    ),
     ModelEntry(
         id="deepseek-v4-flash",
-        provider="deepseek",
-        service="llm.deepseek",
-        description="DeepSeek V4 Flash 官方 API（DeepSeek-V4-Flash-0731，1M 上下文），快速 + Agent 能力突出。",
+        provider="nebula",
+        service="llm.nebula",
+        description="DeepSeek V4 Flash via Nebula gateway。",
+    ),
+    ModelEntry(
+        id="deepseek-v4-pro",
+        provider="nebula",
+        service="llm.nebula",
+        description="DeepSeek V4 Pro via Nebula gateway。",
     ),
     # ── MiniMax ───────────────────────────────────────────────────────────────
     ModelEntry(

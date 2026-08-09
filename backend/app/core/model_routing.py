@@ -74,9 +74,21 @@ STRICT_MODEL_MAP = {
     "deepseek-v4-flash": "deepseek-v4-flash",
     "ds-v4-flash": "deepseek-v4-flash",
     "xopdeepseekv4flash": "xopdeepseekv4flash",
-    "deepseek-v4-pro": "xopdeepseekv4pro",
+    # bare deepseek-v4-pro → Nebula；xfyun 线仍用 xopdeepseekv4pro / ds-v4-pro
+    "deepseek-v4-pro": "deepseek-v4-pro",
     "ds-v4-pro": "xopdeepseekv4pro",
     "xopdeepseekv4pro": "xopdeepseekv4pro",
+    # ── Nebula Gateway ──
+    "gpt-5.5-pro": "gpt-5.5-pro",
+    "gpt-5.4-pro": "gpt-5.4-pro",
+    "gpt-5.5": "gpt-5.5",
+    "gpt-5.4": "gpt-5.4",
+    "gpt-5.4-mini": "gpt-5.4-mini",
+    "gpt-5.4-mini-2026-03-17": "gpt-5.4-mini-2026-03-17",
+    "gpt-5.4-nano": "gpt-5.4-nano",
+    "gpt-5.4-nano-2026-03-17": "gpt-5.4-nano-2026-03-17",
+    "claude-sonnet-4-6": "claude-sonnet-4-6",
+    "claude-opus-4-6": "claude-opus-4-6",
     # ── 阿里云 codingPlan ──
     "qwen-plus": "qwen3.7-plus",
     "qwen3.5-plus": "qwen3.7-plus",
@@ -105,8 +117,19 @@ MODEL_SERVICE_MAP = {
     "xopkimik26": "llm.glm51.enterprise",
     "xopdeepseekv4flash": "llm.glm51.enterprise",
     "xopdeepseekv4pro": "llm.glm51.enterprise",
-    # DeepSeek 官方 API（https://api.deepseek.com）— 仅 Flash
-    "deepseek-v4-flash": "llm.deepseek",
+    # Nebula Gateway（https://106.55.103.208:15172/api/nebula/gateway/v1）
+    "gpt-5.5-pro": "llm.nebula",
+    "gpt-5.4-pro": "llm.nebula",
+    "gpt-5.5": "llm.nebula",
+    "gpt-5.4": "llm.nebula",
+    "gpt-5.4-mini": "llm.nebula",
+    "gpt-5.4-mini-2026-03-17": "llm.nebula",
+    "gpt-5.4-nano": "llm.nebula",
+    "gpt-5.4-nano-2026-03-17": "llm.nebula",
+    "claude-sonnet-4-6": "llm.nebula",
+    "claude-opus-4-6": "llm.nebula",
+    "deepseek-v4-flash": "llm.nebula",
+    "deepseek-v4-pro": "llm.nebula",
     # 阿里云 codingPlan
     "qwen3.7-plus": "llm.aliyun.codingplan",
     # 阿里云 DashScope VL 系列
