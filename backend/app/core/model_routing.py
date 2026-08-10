@@ -62,9 +62,10 @@ STRICT_MODEL_MAP = {
     "glm-5.2-xfyun": "xopglm52",
     "glm52": "xopglm52",
     "xopglm52": "xopglm52",
-    # Bare glm-5.2 / glm2 alias → dedicated 128K "glm2" line (88.api456.me)
+    # Bare glm-5.2 / glm2 / lant_glm_52 → lant.top relay（勿与 xfyun xopglm52 混淆）
     "glm-5.2": "glm-5.2",
     "glm2": "glm-5.2",
+    "lant_glm_52": "glm-5.2",
     "glm-5": "GLM-5",
     "glm-5-turbo": "GLM-5-Turbo",
     "glm-turbo": "GLM-5-Turbo",
@@ -74,8 +75,10 @@ STRICT_MODEL_MAP = {
     "deepseek-v4-flash": "deepseek-v4-flash",
     "ds-v4-flash": "deepseek-v4-flash",
     "xopdeepseekv4flash": "xopdeepseekv4flash",
-    # bare deepseek-v4-pro → Nebula；xfyun 线仍用 xopdeepseekv4pro / ds-v4-pro
+    # bare deepseek-v4-pro / lant_ds_v4_pro → lant.top relay
+    # xfyun 线仍用 xopdeepseekv4pro / ds-v4-pro；Nebula 线另有 deepseek-v4-flash 等
     "deepseek-v4-pro": "deepseek-v4-pro",
+    "lant_ds_v4_pro": "deepseek-v4-pro",
     "ds-v4-pro": "xopdeepseekv4pro",
     "xopdeepseekv4pro": "xopdeepseekv4pro",
     # ── Nebula Gateway ──
@@ -110,8 +113,9 @@ MODEL_SERVICE_MAP = {
     # 讯飞星火 MaaS 企业版（所有 xop* 模型共用同一 API key + base_url）
     "xopglm51": "llm.glm51.enterprise",
     "xopglm52": "llm.glm51.enterprise",
-    # 独立 glm2 线（新购 128K key，端点 88.api456.me；模型名对上游即 glm-5.2）
-    "glm-5.2": "llm.glm2",
+    # lant.top relay（https://lant.top/relay-api/v1）
+    "glm-5.2": "llm.lant",
+    "deepseek-v4-pro": "llm.lant",
     "GLM-5": "llm.glm51.enterprise",
     "GLM-5-Turbo": "llm.glm51.enterprise",
     "xopkimik26": "llm.glm51.enterprise",
@@ -129,7 +133,6 @@ MODEL_SERVICE_MAP = {
     "claude-sonnet-4-6": "llm.nebula",
     "claude-opus-4-6": "llm.nebula",
     "deepseek-v4-flash": "llm.nebula",
-    "deepseek-v4-pro": "llm.nebula",
     # 阿里云 codingPlan
     "qwen3.7-plus": "llm.aliyun.codingplan",
     # 阿里云 DashScope VL 系列

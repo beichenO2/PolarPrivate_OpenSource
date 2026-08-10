@@ -38,12 +38,30 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.glm51.enterprise",
         description="GLM-5.1（200K 上下文）；显式别名 glm-5.1 / glm51。",
     ),
-    # ── glm2 独立线（新购 128K key，端点 88.api456.me）──────────────────
+    # ── lant.top relay ───────────────────────────────────────────────────
     ModelEntry(
         id="glm-5.2",
-        provider="glm2",
-        service="llm.glm2",
-        description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。填入 key 后可用。",
+        provider="lant",
+        service="llm.lant",
+        description="GLM-5.2 via lant.top relay（https://lant.top/relay-api/v1）；别名 glm2 / lant_glm_52。",
+    ),
+    ModelEntry(
+        id="lant_glm_52",
+        provider="lant",
+        service="llm.lant",
+        description="显式 lant 线：GLM-5.2（上游 glm-5.2 @ llm.lant）。与讯飞/官方线区分。",
+    ),
+    ModelEntry(
+        id="deepseek-v4-pro",
+        provider="lant",
+        service="llm.lant",
+        description="DeepSeek V4 Pro via lant.top relay（https://lant.top/relay-api/v1）；别名 lant_ds_v4_pro。",
+    ),
+    ModelEntry(
+        id="lant_ds_v4_pro",
+        provider="lant",
+        service="llm.lant",
+        description="显式 lant 线：DeepSeek V4 Pro（上游 deepseek-v4-pro @ llm.lant）。勿与官方/Nebula/xfyun DS 混淆。",
     ),
     ModelEntry(
         id="xopkimik26",
@@ -131,12 +149,6 @@ MODEL_CATALOG: list[ModelEntry] = [
         provider="nebula",
         service="llm.nebula",
         description="DeepSeek V4 Flash via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="deepseek-v4-pro",
-        provider="nebula",
-        service="llm.nebula",
-        description="DeepSeek V4 Pro via Nebula gateway。",
     ),
     # ── MiniMax ───────────────────────────────────────────────────────────────
     ModelEntry(
