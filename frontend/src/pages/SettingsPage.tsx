@@ -158,7 +158,6 @@ export default function SettingsPage() {
     try {
       const result = await apiRequest<{
         projects: number;
-        identities: number;
         secrets: number;
         bindings: number;
         skipped: number;
@@ -172,7 +171,7 @@ export default function SettingsPage() {
         }),
       });
       toast.success(
-        `已恢复：${result.projects} 个项目、${result.secrets} 个密钥、${result.identities} 个身份、${result.bindings} 个绑定（跳过 ${result.skipped} 个）。`,
+        `已恢复：${result.projects} 个项目、${result.secrets} 个密钥、${result.bindings} 个绑定（跳过 ${result.skipped} 个）。`,
       );
       void queryClient.invalidateQueries();
       setPendingFile(null);
@@ -572,7 +571,6 @@ function GitSyncControls() {
         message: string;
         projects: number;
         secrets: number;
-        identities: number;
         bindings: number;
         skipped: number;
       }>("/api/vault/sync-pull", {
@@ -583,7 +581,7 @@ function GitSyncControls() {
       setPullPassword("");
       setShowPull(false);
       if (data.restored) {
-        toast.success(`${data.message}（项目 ${data.projects}、密钥 ${data.secrets}、身份 ${data.identities}、绑定 ${data.bindings}，跳过 ${data.skipped}）`);
+        toast.success(`${data.message}（项目 ${data.projects}、密钥 ${data.secrets}、绑定 ${data.bindings}，跳过 ${data.skipped}）`);
       } else {
         toast.error(data.message);
       }

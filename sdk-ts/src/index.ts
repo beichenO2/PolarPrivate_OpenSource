@@ -1,13 +1,4 @@
 export {
-  PrivPortalMiddleware,
-  type PrivPortalOptions,
-  type IdentityMapping,
-  type SecretMapping,
-  type MappingsResponse,
-  type LeakInfo,
-} from "./middleware.js";
-
-export {
   resolveUser,
   listUserBindings,
   createBinding,

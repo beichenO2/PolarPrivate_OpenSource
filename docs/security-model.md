@@ -1,4 +1,4 @@
-# PrivPortal 安全模型
+# PolarPrivate 安全模型
 
 ## 首要原则：明文外发禁令
 
@@ -14,6 +14,8 @@ PolarPrivate 的安全设计围绕一个首要承诺：
    - **B 类（HMAC 签名）** — `/sign/{provider}/{action}` — Secret 在签名运算中使用，仅返回签名后的 header dict。
    - **D 类（受控信道）** — `/api/d-class/grant` — 唯一的明文授予路径，受 SHA256 白名单约束，仅限第三方 SDK 场景（如 tqsdk 期货）。Agent 进程 hash 不在白名单中。
 3. **GUI 只写不可读** — 前端 SecretsPage 已移除所有 reveal/hide 交互，编辑时重新输入新明文。
+
+PII 正则扫描/涂抹是独立的附属能力：`/api/sanitize/scan|redact` 只处理调用方提交的文本，不建立 Identity Vault，也不承诺自动拦截所有发往 LLM 的内容。`scan` 响应会在 localhost 内返回命中片段，不能与上述 Secret 明文外发禁令混为一谈。
 
 ## 核心安全约束
 
@@ -58,7 +60,20 @@ PBKDF2-HMAC-SHA256
 | `salt`                | BLOB     | PBKDF2 盐值                              |
 | `sentinel_ciphertext` | TEXT     | Sentinel 明文的 Fernet 加密结果           |
 | `schema_version`      | INTEGER  | Schema 版本号                             |
-| `fernet_keys_json`    | TEXT     | JSON 数组，包含一个或多个 base64 Fernet key |
+| `fernet_keys_json`    | TEXT     | schema v2：由主密码派生密钥加密存储的 wrapped key payload |
+| `auto_unlock_token`   | TEXT     | 启用自动解锁时，由设备密钥加密的 Master Password token |
+
+schema v2 创建数据库时，先用 `Master Password + salt` 派生 Fernet key，再用该 key 加密包含 MultiFernet keys 的 JSON，密文写入 `fernet_keys_json`。解锁时必须先通过 sentinel 验证密码，才能解开 wrapped keys。`schema_version < 2` 的旧库仍保留明文 JSON 读取分支，仅用于向后兼容，不代表当前存储格式。
+
+### 信任根
+
+当前信任根由三部分组成：
+
+1. **Master Password** — 解锁 sentinel 与 wrapped Fernet keys 的根凭证。
+2. **操作系统文件权限** — 保护 SQLite 密文、salt 与自动解锁 token 不被任意进程篡改或复制。
+3. **macOS Keychain（启用自动解锁时）** — 保存设备密钥；SQLite 中只有由该设备密钥加密的 `auto_unlock_token`。非 macOS 平台回退到权限为 `0600` 的设备密钥文件。
+
+因此，仅取得 schema v2 SQLite 文件不足以直接解密 Secret；攻击者还需要 Master Password，或在自动解锁启用时同时突破对应设备的 Keychain/设备密钥保护。
 
 ### 密码更换流程
 
@@ -72,7 +87,7 @@ PBKDF2-HMAC-SHA256
 生成新 salt + 新 Fernet key
     │
     ▼
-更新 db_metadata (salt, sentinel, fernet_keys_json)
+更新 db_metadata (salt, sentinel, wrapped fernet_keys_json)
     │
     ▼
 用新密钥重新加密所有 Secret
@@ -119,9 +134,11 @@ session.flush() 验证所有 DB 变更
 - `POST /api/vault/unlock` — 输入 master_password 解锁 Vault。
   - **暴力破解保护**: 连续 10 次失败后锁定 60 秒，返回 **HTTP 429 Too Many Requests**（错误码 `RATE_LIMITED`）。成功解锁后计数器和锁定时间均归零。计数器使用线程锁保护，为进程级内存状态。
 - 需要解锁的端点通过 `require_unlocked_vault` 依赖保护，未解锁返回 **HTTP 423 Locked**:
-  - Secret 创建/更新/reveal/rotate
+  - Secret 创建/更新/rotate
   - 代理转发
   - Onboarding 导入 Demo 数据
+
+R9 已永久移除 Secret reveal 端点；它不属于任何“需要解锁即可使用”的 API 集合。
 
 ## 日志脱敏
 
@@ -151,7 +168,7 @@ _SK_LIKE_PATTERN = re.compile(r"sk-[a-zA-Z0-9_-]{10,}")
 ### 日志不记录的内容
 
 - **代理请求/响应体** — `_forward_streaming()` 注释标注 "no request/response body logging (D-70)"。
-- **Secret 明文** — `SecretRevealOut` 的 docstring 标注 "never log this payload"。
+- **Secret 明文** — R9 已移除明文读取响应；写入、轮换和代理注入路径均不得记录 payload。
 - **上游响应内容** — 代理日志仅记录元数据（service_name、method、upstream_host），不记录 body。
 
 ## 网络安全
@@ -202,9 +219,9 @@ _SK_LIKE_PATTERN = re.compile(r"sk-[a-zA-Z0-9_-]{10,}")
 
 ## 已知限制
 
-1. **单用户模型** — 浏览器 session cookie 认证，无多用户 RBAC。适用于个人本地使用。
-2. **无自动锁定** — Vault 解锁后直到进程终止都保持解锁状态。
-3. **Master Password 不存储** — 忘记密码无法恢复，只能重建数据库。
-4. **SQLite 文件保护** — 依赖操作系统文件权限，PrivPortal 不加密整个数据库文件。
+1. **本地用户模型** — 支持 admin/user 角色与浏览器 session，但不是面向公网的多租户认证系统。
+2. **无闲置自动锁定** — Vault 不会按空闲时长自动锁定；管理员可主动锁定，进程终止也会清除内存密钥。
+3. **Master Password 不明文存储** — 忘记密码无法恢复；启用自动解锁时，SQLite 仅保存设备密钥加密后的 token，设备密钥由 macOS Keychain（或非 macOS 的 `0600` 文件）保护。
+4. **SQLite 文件保护** — 依赖操作系统文件权限，PolarPrivate 不加密整个数据库文件。
 5. **无审计日志加密** — `audit_log` 表中的 `detail` 字段为明文（但不应包含 Secret 值）。
-6. **Fernet Key 明文存储** — `db_metadata.fernet_keys_json` 中存储的 Fernet key 是明文 base64 编码。任何能读取 SQLite 文件的人可以直接解密所有 Secret。对于 v1 localhost-only 模型，SQLite 文件的访问权限即为信任边界。未来可加密此字段或改为 unlock 时重新派生。
+6. **旧 schema 兼容边界** — `schema_version < 2` 的历史数据库仍可从未包装的 `fernet_keys_json` 读取 keys；schema v2 已改为加密存储 wrapped keys。旧库应通过改密/迁移升级，不能套用 v2 的静态文件防护结论。

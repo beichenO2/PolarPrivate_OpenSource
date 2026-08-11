@@ -1,4 +1,4 @@
-# PrivPortal API 参考
+# PolarPrivate API 参考
 
 所有 API 端点前缀为 `http://127.0.0.1:12790`（默认），请求/响应格式为 JSON。
 
@@ -8,7 +8,8 @@
 - [Vault](#vault)
 - [Onboarding](#onboarding)
 - [Projects](#projects)
-- [Identities](#identities)
+- [Sanitize](#sanitize)
+- [已退役能力](#已退役能力)
 - [Secrets](#secrets)
 - [Bindings](#bindings)
 - [Dashboard](#dashboard)
@@ -126,9 +127,8 @@
 ```json
 {
   "project_id": "uuid",
-  "identities": 3,
-  "secrets": 2,
-  "bindings": 2
+  "secrets": 1,
+  "bindings": 1
 }
 ```
 
@@ -210,79 +210,56 @@
 
 ---
 
-## Identities
+## Sanitize
 
-### `GET /api/identities`
+PII 正则扫描/涂抹是附属能力，不依赖 Identity Vault，也不会自动介入 `/v1` LLM 请求。
 
-列出 Identity 条目。
+### `POST /api/sanitize/scan`
 
-**查询参数**:
+扫描调用方提交的文本，返回命中的类型、位置与原始片段。内置 pattern 包括邮箱、电话、证件号、银行卡号、IP、API Key/Token、JWT 等。
 
-| 参数         | 类型   | 默认值 | 说明                    |
-| ------------ | ------ | ------ | ----------------------- |
-| `offset`     | int    | 0      | 分页偏移                |
-| `limit`      | int    | 50     | 每页数量 (0-200)        |
-| `q`          | string | —      | 按 key 或 value 模糊搜索|
-| `category`   | string | —      | 按分类精确筛选          |
-| `project_id` | string | —      | 按项目筛选              |
+**请求体**:
+
+```json
+{ "text": "contact person@example.invalid" }
+```
 
 **响应**: `200 OK`
 
 ```json
 {
-  "items": [
+  "has_pii": true,
+  "count": 1,
+  "matches": [
     {
-      "id": "uuid",
-      "key": "identity.student.name",
-      "value": "张三",
-      "project_id": "uuid | null",
-      "category": "student | null",
-      "created_at": "...",
-      "updated_at": "..."
+      "label": "email",
+      "description": "邮箱地址",
+      "start": 8,
+      "end": 30,
+      "text": "person@example.invalid"
     }
-  ],
-  "total": 3
+  ]
 }
 ```
 
-### `POST /api/identities`
+### `POST /api/sanitize/redact`
 
-创建 Identity。
+扫描文本并用占位符替换命中项。`placeholder` 默认为 `"[[{label}]]"`。
 
 **请求体**:
 
 ```json
 {
-  "key": "identity.student.name",
-  "value": "张三",
-  "project_id": "uuid | null",
-  "category": "student"
+  "text": "contact person@example.invalid",
+  "placeholder": "[[{label}]]"
 }
 ```
 
-**校验**: `key` 必须包含至少一个 `.`。
+**响应**: `200 OK`，返回 `has_pii`、`count`、`redacted` 与 `matches`。`matches` 仍含 localhost 请求中的原始命中片段，应按敏感数据处理。
 
-**响应**: `201 Created` → IdentityOut 对象
+## 已退役能力
 
-### `GET /api/identities/{identity_id}`
-
-获取单个 Identity。
-
-**响应**: `200 OK` → IdentityOut / `404`
-
-### `PATCH /api/identities/{identity_id}`
-
-更新 Identity（仅传需要更新的字段）。
-
-**校验**: `key` 和 `value` 不可设为 `null`（返回 422 `VALIDATION_ERROR`）
-
-**响应**: `200 OK` → IdentityOut
-
-### `DELETE /api/identities/{identity_id}`
-
-删除 Identity。
-
-**响应**: `204 No Content`
+文档 Identity 脱敏与导出回填产品线已正式退役。当前应用未注册 `/api/identities` CRUD，这些路径不再是可用 API；需要无状态 PII 检测时使用 `/api/sanitize/scan|redact`。跨服务账号映射使用的 `/api/identity-bindings` 是用户账号关联能力，与已退役的文档 Identity Vault 不同。
 
 ---
 
@@ -371,17 +348,7 @@
 
 **校验**: `key` 和 `value` 不可设为 `null`（返回 422 `VALIDATION_ERROR`）
 
-### `POST /api/secrets/{secret_id}/reveal`
-
-获取 Secret 明文值。需要 Vault 已解锁。
-
-**响应**: `200 OK`
-
-```json
-{ "value": "sk-xxxxxxxxxxxx" }
-```
-
-此端点仅供 GUI 使用，返回值不应被记录到日志。
+**R9 明文外发禁令**：`POST /api/secrets/{secret_id}/reveal` 已永久移除，不存在成功响应。GUI 对 Secret 只写不可读；需要使用 Secret 时走 A 类代理、B 类签名或 D 类受控信道。
 
 ### `POST /api/secrets/{secret_id}/rotate`
 
@@ -516,7 +483,6 @@
 
 ```json
 {
-  "identity_count": 3,
   "secret_count": 2,
   "binding_count": 2,
   "project_id": "uuid | null"
@@ -573,13 +539,13 @@
 
 ### `POST /api/render`
 
-渲染模板，替换 `[[placeholder]]` 占位符。
+渲染 `[[binding.*]]` 与 `[[secret_ref.*]]` 占位符。该兼容接口只输出引用标记，不解密 Secret，也不支持已退役的 `[[identity.*]]` 回填。
 
 **请求体**:
 
 ```json
 {
-  "template": "Hello [[identity.student.name]], your binding is [[binding.llm.openai]]",
+  "template": "API binding: [[binding.llm.openai]]; key slot: [[secret_ref.secret.openai.default]]",
   "project_id": "uuid | null"
 }
 ```
@@ -588,14 +554,12 @@
 
 ```json
 {
-  "rendered": "Hello 张三, your binding is [secret_ref:secret.openai.default]",
+  "rendered": "API binding: [secret_ref:secret.openai.default]; key slot: [secret_ref:secret.openai.default]",
   "warnings": [],
   "stats": {
-    "resolved_identity": 1,
-    "unresolved_identity": 0,
     "resolved_binding": 1,
     "unresolved_binding": 0,
-    "secret_ref_rendered": 0,
+    "secret_ref_rendered": 1,
     "malformed": 0
   }
 }
@@ -607,13 +571,13 @@
 
 ### `POST /api/export`
 
-渲染模板并导出为指定格式。
+渲染模板并导出为指定格式。仅处理 Binding/Secret 引用标记，不进行 Identity 明文回填。
 
 **请求体**:
 
 ```json
 {
-  "template": "# Report\nAuthor: [[identity.student.name]]",
+  "template": "# Service config\nBinding: [[binding.llm.openai]]",
   "format": "html",
   "project_id": "uuid | null"
 }
@@ -641,15 +605,15 @@
 
 ```json
 {
-  "test_type": "identity_render",
-  "project_id": "uuid | null"
+  "test_type": "all"
 }
 ```
 
 `test_type` 可选值:
-- `"identity_render"` — 测试 Identity 模板替换
-- `"api_connectivity"` — 测试渲染和导出 API 路径
-- `"binding_probe"` — 测试所有 Binding 关联的上游 URL 连通性
+- `"llm_connectivity"` — 检查已配置全局 LLM Binding 与 Secret
+- `"sign_providers"` — 检查签名 provider 所需 Binding/Secret
+- `"d_class"` — 检查 D 类 allowlist 与 Secret 配置
+- `"all"` — 运行以上全部检查
 
 **响应**: `200 OK`
 
@@ -657,9 +621,9 @@
 {
   "results": [
     {
-      "name": "identity_render",
+      "name": "llm:llm.example",
       "status": "pass",
-      "message": "identity 'identity.student.name' resolved",
+      "message": "Binding and secret configured for llm.example",
       "duration_ms": 5
     }
   ]
@@ -739,6 +703,21 @@
 ---
 
 ## LLM Gateway (v1)
+
+### `GET /v1/models`
+
+列出 Vault 解锁后当前可用的 OpenAI 兼容模型目录。云端模型按已配置且启用的全局 Binding/Secret 过滤；Vault 锁定时返回 `423 VAULT_LOCKED`。
+
+### `POST /v1/embeddings`
+
+统一 Embeddings 网关。请求体采用 OpenAI 兼容格式，`model` 使用 `E000` 能力码；PolarPrivate 将其解析为已配置的嵌入模型与 Binding，并在进程内注入认证信息。
+
+```json
+{
+  "model": "E000",
+  "input": ["example text"]
+}
+```
 
 ### `POST /v1/chat/completions`
 

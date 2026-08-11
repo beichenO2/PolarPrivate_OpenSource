@@ -19,10 +19,10 @@ function SvgIcon({ d }: { d: string }) {
 }
 
 const FEATURES = [
-  { icon: ICON_PATHS.identities, label: "身份保险库", desc: "管理文档级 PII（姓名、邮箱、学号等），支持占位符替换。" },
   { icon: ICON_PATHS.secrets, label: "密钥保险库", desc: "使用 Fernet 加密存储 API 密钥、令牌和密码。" },
   { icon: ICON_PATHS.bindings, label: "服务绑定", desc: "将上游服务映射到密钥引用，实现自动请求头注入。" },
-  { icon: ICON_PATHS.template, label: "模板引擎", desc: "使用 [[占位符]] 语法实时预览和导出身份值。" },
+  { icon: ICON_PATHS.services, label: "统一 LLM 代理", desc: "Agent 经本地 /v1 网关调用模型，密钥由后端注入，不出本机。" },
+  { icon: ICON_PATHS.logs, label: "用量看板", desc: "按服务统计代理调用次数、失败数与每日趋势。" },
   { icon: ICON_PATHS.testCenter, label: "连通性测试", desc: "在部署前验证绑定密钥的服务是否可达。" },
 ];
 
@@ -45,7 +45,7 @@ export default function AboutPage() {
     <div className="p-8">
       <PageHeader
         title="关于 PolarPrivate"
-        description="本地隐私代理与脱敏门户 — 将敏感数据隔离在 AI 工作流之外。"
+        description="本地密钥保险库与统一 LLM 代理 — 让 Agent 拿到能力，而不是明文密钥。"
       />
 
       <div className="mt-8 max-w-3xl space-y-8">

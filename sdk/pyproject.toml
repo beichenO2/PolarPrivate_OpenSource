@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "privportal-sdk"
-version = "0.1.0"
-description = "Lightweight SDK for PolarPrivate — sanitize/resolve text using identity mappings"
+version = "0.7.0"
+description = "Lightweight SDK for PolarPrivate — LLM proxy calls and cross-service identity bindings"
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.28",

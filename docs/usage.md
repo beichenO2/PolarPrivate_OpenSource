@@ -1,4 +1,6 @@
-# PrivPortal 使用指南
+# PolarPrivate 使用指南
+
+PolarPrivate 是 Polarisor 生态的供给平面：本地密钥保险库 + 统一 LLM Proxy。主要工作流是让调用方使用 QCSA 能力码获得模型与第三方服务能力，同时不接触 Secret 明文。
 
 ## 系统要求
 
@@ -99,27 +101,24 @@ privportal import-demo
 privportal start
 ```
 
-也可通过环境变量跳过密码提示：
-
-```bash
-PRIVPORTAL_MASTER_PASSWORD=your_password privportal import-demo
-```
+不建议通过环境变量传入 Master Password；环境变量可能进入 Agent 进程、Shell 历史或诊断信息。请使用交互式提示或本地 GUI。
 
 ## 核心使用场景
 
-### 场景 1：管理身份信息
+### 场景 1：通过统一 LLM 网关调用能力
 
-适用于文档中需要脱敏的个人信息（姓名、邮箱、学号等）。
+Vault 已解锁且全局 LLM Binding 配置完成后，调用方只传 QCSA 能力码：
 
-1. 导航到 **Identity Vault** 页面
-2. 点击 **Add identity**
-3. 填写：
-   - Key: `identity.student.name`（必须包含 `.`）
-   - Value: `张三`
-   - Category: `student`（可选）
-4. 点击 **Create**
+```bash
+curl -X POST http://127.0.0.1:12790/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "0001",
+    "messages": [{"role": "user", "content": "返回 pong"}]
+  }'
+```
 
-之后在模板中使用 `[[identity.student.name]]` 即可自动替换为 `张三`。
+PolarPrivate 在进程内完成能力码解析、Binding 选择、Secret 解密与认证头注入。调用方不会收到 API Key，上游真实模型名也不会替代响应中的能力码。`GET /v1/models` 可查看当前可用模型，`POST /v1/embeddings` 使用 `E000` 嵌入能力码。
 
 ### 场景 2：存储 API 密钥
 
@@ -154,42 +153,22 @@ PRIVPORTAL_MASTER_PASSWORD=your_password privportal import-demo
 # POST https://api.openai.com/v1/chat/completions
 # Authorization: Bearer sk-xxxxxxxxxxxx
 
-# 通过 PrivPortal 代理:
+# 通过 PolarPrivate 代理:
 POST http://127.0.0.1:12790/proxy/llm.openai/v1/chat/completions
-# 无需 Authorization header —— PrivPortal 自动注入
+# 无需 Authorization header —— PolarPrivate 自动注入
 ```
 
-### 场景 4：模板渲染与导出
+### 场景 4：附属 PII 扫描与涂抹
 
-生成包含真实身份信息的文档，同时保护密钥。
+`/api/sanitize/scan` 与 `/api/sanitize/redact` 对调用方提供的文本执行无状态正则检测，不依赖预先登记的身份数据：
 
-1. 导航到 **Template Preview** 页面
-2. 输入模板：
-
-```
-# 项目报告
-
-作者: [[identity.student.name]]
-邮箱: [[identity.student.email]]
-组织: [[identity.org.name]]
-API 接入: [[binding.llm.openai]]
+```bash
+curl -X POST http://127.0.0.1:12790/api/sanitize/redact \
+  -H "Content-Type: application/json" \
+  -d '{"text":"联系 person@example.invalid","placeholder":"[[{label}]]"}'
 ```
 
-3. 点击 **Render** 查看替换结果
-4. 导航到 **Export** 页面，选择格式导出
-
-输出示例：
-
-```
-# 项目报告
-
-作者: 张三
-邮箱: zhangsan@example.com
-组织: 示例组织
-API 接入: [secret_ref:secret.openai.default]
-```
-
-注意：Secret 值以 `[secret_ref:...]` 形式出现，不会被明文替换。
+响应的 `redacted` 字段会把示例邮箱替换为 `[[email]]`。该能力还支持手机号、证件号、Token 等内置 pattern 与自定义正则。它是本地附属能力，不是自动接管所有 LLM 请求的中间件；`scan`/`redact` 响应中的 `matches` 会包含 localhost 请求内的命中片段，调用方仍需按敏感数据处理。
 
 ### 场景 5：密钥轮换
 
@@ -213,6 +192,15 @@ API 接入: [secret_ref:secret.openai.default]
 
 或者使用 **Test Center** 页面批量测试所有 Binding。
 
+## 已退役：Identity 文档回填
+
+原「Identity Vault → `[[identity.*]]` 模板替换 → 导出真实身份信息」产品线已正式退役：
+
+- 当前后端没有 `Identity` 数据模型或 `/api/identities` CRUD；
+- `template_render` 不再解密或回填身份值，遗留的 `decrypt` 参数仅为 deprecated 兼容参数；
+- `/api/render` 与 `/api/export` 如被旧客户端调用，只处理 `[[binding.*]]` / `[[secret_ref.*]]`，输出引用标记而不是任何 Secret 或身份明文；
+- 需要发现或涂抹文本 PII 时，请使用仍在维护的 `/api/sanitize/scan|redact`。
+
 ## CLI 命令参考
 
 | 命令                | 说明                                     |
@@ -230,14 +218,14 @@ API 接入: [secret_ref:secret.openai.default]
 | `PRIVPORTAL_API_HOST`        | `127.0.0.1`                 | 后端监听地址           |
 | `PRIVPORTAL_API_PORT`        | `12790`                     | 后端监听端口           |
 | `PRIVPORTAL_DATABASE_URL`    | `sqlite:///./privportal.db` | SQLite 数据库路径      |
-| `PRIVPORTAL_MASTER_PASSWORD` | —                           | CLI 自动使用此密码     |
+| `PRIVPORTAL_MASTER_PASSWORD` | —                           | 遗留 CLI 输入；不建议在 Agent/Shell 环境设置 |
 | `VITE_API_BASE`              | `http://127.0.0.1:12790`    | 前端连接后端的地址     |
 
 ## 项目组织
 
-PrivPortal 使用**项目 (Project)** 作为顶层组织单位：
+PolarPrivate 使用**项目 (Project)** 作为顶层组织单位：
 
-- 每个 Project 可以包含独立的 Identity、Secret 和 Binding
+- 每个 Project 可以包含独立的 Secret 和 Binding
 - 切换项目后，所有页面自动过滤为当前项目的数据
 - 选择"Global"查看不属于任何项目的数据
 - 删除项目会级联删除其下所有数据

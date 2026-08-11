@@ -1,6 +1,8 @@
 # PolarPrivate
 
-**本地 LLM 代理 + 密钥保险库** — Agent 与脚本只传 QCSA 能力码（如 `0001`、`V0000`），API Key 在 PolarPrivate 进程内解密注入，**明文永不进入 Agent 工作区**。[Polarisor](https://github.com/beichenO2/Polarisor) 生态的安全基础设施。
+**[Polarisor](https://github.com/beichenO2/Polarisor) 生态的供给平面（supply plane）：本地密钥保险库 + 统一 LLM Proxy。** Agent 与脚本只传 QCSA 能力码（如 `0001`、`V0000`），API Key 在 PolarPrivate 进程内解密注入。目标只有一句：**让 Agent 拥有全部能力，而不知道任何秘密。**
+
+`/api/sanitize/scan|redact` 的无状态 PII 正则扫描/涂抹作为附属能力保留；原「文档 Identity 脱敏 + 导出回填」产品线已正式退役。
 
 ---
 
@@ -76,7 +78,7 @@ R9「明文外发禁令」删除了 `/api/secrets/{id}/reveal` 与 service-token
 | **加密** | PBKDF2-HMAC-SHA256 **480,000** 次迭代 + Fernet；Secret 密文存 SQLite |
 | **测试** | **327** 个 pytest 用例；**14** 版 Alembic 迁移 |
 | **Web UI** | **11** 个管理页面：Dashboard、Secrets、Projects、Bindings、Test Center、Logs 等 |
-| **SDK** | Python `privportal-sdk` + TypeScript `sdk-ts`（Identity 查询 + 脱敏中间件） |
+| **SDK** | Python `privportal-sdk` + TypeScript `sdk-ts` 遗留客户端；Identity 查询与脱敏中间件已退役，新接入优先使用 OpenAI 兼容 `/v1` |
 
 ---
 

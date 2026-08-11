@@ -33,13 +33,13 @@ class TestScanText:
         assert ips[0].text == "192.168.1.100"
 
     def test_detects_api_key(self):
-        result = scan_text("Use sk-proj-abc123def456ghi789 for auth")
+        result = scan_text("Use sk-proj-abc123def456ghi789 for auth")  # gitleaks:allow (synthetic test fixture)
         keys = [m for m in result.matches if m.label == "api_key"]
         assert len(keys) == 1
         assert "sk-proj" in keys[0].text
 
     def test_detects_jwt(self):
-        token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456"
+        token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123def456"  # gitleaks:allow (synthetic test fixture)
         result = scan_text(f"Bearer {token}")
         jwts = [m for m in result.matches if m.label == "jwt"]
         assert len(jwts) == 1

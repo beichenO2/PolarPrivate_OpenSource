@@ -30,21 +30,6 @@ export interface IUserListResponse {
   total: number;
 }
 
-export interface IIdentityOut {
-  id: string;
-  key: string;
-  value: string;
-  project_id: string | null;
-  category: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface IIdentityListResponse {
-  items: IIdentityOut[];
-  total: number;
-}
-
 export interface ISecretOut {
   id: string;
   key: string;

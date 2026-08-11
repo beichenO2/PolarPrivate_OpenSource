@@ -1,7 +1,7 @@
 {
   "name": "privportal-sdk",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for PolarPrivate — sanitize/resolve middleware for LLM privacy",
+  "version": "0.2.0",
+  "description": "TypeScript SDK for PolarPrivate — LLM proxy calls and cross-service identity bindings",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,10 +25,10 @@
   ],
   "keywords": [
     "privacy",
-    "sanitize",
-    "pii",
+    "secrets",
+    "vault",
     "llm",
-    "middleware"
+    "proxy"
   ],
   "license": "MIT",
   "devDependencies": {

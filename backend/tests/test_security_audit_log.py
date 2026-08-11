@@ -9,7 +9,7 @@ def test_audit_log_secret_create_does_not_contain_value(client):
         "/api/secrets",
         json={
             "key": "secret.audit.probe",
-            "value": "sk-AUDIT-PROBE-SECRET-VALUE-9999",
+            "value": "sk-AUDIT-PROBE-SECRET-VALUE-9999",  # gitleaks:allow (synthetic test fixture)
             "project_id": None,
         },
     )

@@ -1,11 +1,16 @@
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**PrivPortal**
+**PolarPrivate**
 
-PrivPortal 是一个本地运行的隐私代理与脱敏门户（Local Privacy Proxy & Sanitization Portal）。它为开发者和团队提供一个 Web GUI，用于集中管理两类敏感数据：文档类隐私信息（姓名、邮箱、学号等 identity）和运行时 secret（API key、token、密码等），确保 AI Agent 和开发流程不接触明文敏感数据，同时用户可以在本地预览和导出时回填真实值。
+PolarPrivate 是 Polarisor 生态的供给平面（supply plane）：**本地密钥保险库 + 统一 LLM Proxy**。它在 localhost 进程内托管 Secret、解析 QCSA 能力码并向上游注入凭证，让 Agent 只持有能力引用，不接触明文秘密。
 
-**Core Value:** 用户通过一个本地 Web 界面即可安全地管理所有 identity 和 secret，程序运行时通过本地代理自动注入密钥而不暴露明文，文档导出时可以回填 identity 而不泄露 secret。
+**Core Value:** 让 Agent 拥有全部能力，而不知道任何秘密。
+
+**产品边界：**
+- 本地 Secret Vault 与 `/v1` 统一 LLM 网关是主产品线。
+- `/api/sanitize/scan`、`/api/sanitize/redact` 提供无状态 PII 正则扫描/涂抹，属于附属能力。
+- 文档 Identity 脱敏与导出回填产品线已正式退役；当前数据模型无 `Identity`，模板渲染不再解密或回填真实身份值。
 
 ### Constraints
 
@@ -17,23 +22,24 @@ PrivPortal 是一个本地运行的隐私代理与脱敏门户（Local Privacy P
 
 ### Security Principles（安全红线）
 
-**核心原则：明文敏感数据永远不能出现在以下位置：**
+**核心原则：Secret 明文永远不能进入 Agent 可达边界。**
 
-1. **磁盘** — Identity 和 Secret 的值必须 Fernet 加密存储，防止被 LLM Agent 通过文件操作读取
-2. **非本地 LLM 信息流** — 任何发往云端 LLM API 的请求必须经过 SDK 中间件脱敏（替换为占位符）
-3. **日志** — 不允许 log 任何敏感值的明文（使用 structlog 的 redaction processor）
-4. **Agent 工作区** — .planning/、inbox/outbox/ 等 Agent 可读目录不能包含明文
-5. **Git 仓库** — 只有 Fernet 加密的 vault-backup.json 可以提交
+1. **磁盘** — Secret 值必须以 Fernet 密文存储；schema v2 的 `fernet_keys_json` 也必须由 Master Password 派生密钥加密包装
+2. **Agent / LLM 信息流** — 调用方只传 QCSA 能力码、Binding 或 Secret key 引用；Secret 仅在代理进程内解密和注入，不得进入 Agent 请求、响应或云端上下文
+3. **日志** — 不允许记录 Secret 明文（使用 structlog redaction processor）
+4. **Agent 工作区** — `.planning/`、inbox/outbox 等 Agent 可读目录不能包含 Secret 明文
+5. **Git 仓库** — 只能提交 Fernet 加密且密钥材料已包装的 `vault-backup.json`，不得提交明文敏感数据
 
 **明文可以出现的位置：**
-- 本地 UI（浏览器内存）— 用户自己查看
-- API 响应（仅限 localhost）— 前端展示用
-- 本地 LLM（需明确标注为本地模型）
+- 本地 UI / localhost 请求内存 — 用户录入或替换 Secret 时短暂存在；GUI 只写不可读
+- PolarPrivate 进程内存 — A 类代理注入、B 类签名、D 类白名单授权所需的最小作用域
+- PII 扫描请求与本地响应 — 仅用于无状态 scan/redact，不建立 Identity Vault，也不提供文档回填
 
 **加密方案：**
-- Identity.value 和 Secret.value 统一使用 Fernet (PBKDF2-HMAC-SHA256 + AES-128-CBC + HMAC-SHA256)
-- 密钥仅存在于内存中，由 Master Password + Salt 派生
-- 备份/恢复/密码轮换时自动 re-encrypt 所有数据
+- `Secret.value` 使用 Fernet（PBKDF2-HMAC-SHA256 + AES-128-CBC + HMAC-SHA256）加密
+- schema v2 的 Fernet keys 以 wrapped ciphertext 存储，由 Master Password + Salt 派生密钥解包；schema v1 仅保留兼容读取
+- 解锁后的 MultiFernet 仅驻进程内存；启用自动解锁时，设备密钥由 macOS Keychain（非 macOS 为 0600 文件回退）保护
+- 备份/恢复/密码轮换时自动 re-encrypt Secret 数据
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:research/STACK.md -->

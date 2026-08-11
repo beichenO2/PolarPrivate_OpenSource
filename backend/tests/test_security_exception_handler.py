@@ -17,7 +17,7 @@ def test_500_never_leaks_exception_details():
 
     @test_app.get("/trigger-crash")
     def _crash():
-        raise RuntimeError("internal secret: sk-DANGEROUS1234567890abcdef")
+        raise RuntimeError("internal secret: sk-DANGEROUS1234567890abcdef")  # gitleaks:allow (synthetic test fixture)
 
     with TestClient(test_app, raise_server_exceptions=False) as c:
         r = c.get("/trigger-crash")

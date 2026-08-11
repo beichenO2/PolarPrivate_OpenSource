@@ -1,8 +1,8 @@
-# PrivPortal 系统架构
+# PolarPrivate 系统架构
 
 ## 概览
 
-PrivPortal 是一个**本地运行**的隐私代理与脱敏门户（Local Privacy Proxy & Sanitization Portal），为开发者提供集中管理文档类隐私信息（Identity）和运行时密钥（Secret）的能力。整个系统仅在 `localhost` 运行，不对外暴露。
+PolarPrivate 是 Polarisor 生态的**供给平面（supply plane）**：本地密钥保险库 + 统一 LLM Proxy。调用方只提交 QCSA 能力码、Binding 名或 Secret 引用；凭证在 localhost 进程内解密、使用并丢弃，从而让 Agent 拥有能力而不知道秘密。无状态 PII 正则扫描/涂抹作为附属能力保留，文档 Identity 脱敏与导出回填产品线已退役。
 
 ## 技术栈
 
@@ -32,30 +32,39 @@ PolarPrivate/
 │   │   ├── main.py              # FastAPI 应用工厂 + ASGI 入口
 │   │   ├── cli.py               # Typer CLI (start / init-db / import-demo / test / smoke)
 │   │   ├── core/
-│   │   │   └── config.py        # pydantic-settings 配置 (PRIVPORTAL_* 环境变量)
+│   │   │   ├── config.py        # pydantic-settings 配置 (PRIVPORTAL_* 环境变量)
+│   │   │   ├── model_routing.py # QCSA → 模型 / Binding / fallback
+│   │   │   ├── model_catalog.py # /v1/models 模型目录
+│   │   │   ├── rate_limiter.py  # 并发 / RPM / 冷却
+│   │   │   └── CAPABILITY_CODES.md # 能力码 SSOT
 │   │   ├── db/
 │   │   │   ├── base.py          # SQLAlchemy declarative Base
-│   │   │   ├── models.py        # ORM 模型 (DbMetadata, Project, Identity, Secret, Binding, AuditLog, AppSettings)
+│   │   │   ├── models.py        # ORM 模型 (DbMetadata, Project, Secret, Binding, UserAccount, AuditLog 等)
 │   │   │   └── session.py       # 同步引擎和会话工厂
 │   │   ├── api/                  # FastAPI 路由模块
 │   │   │   ├── deps.py          # 依赖注入 (get_db, get_vault, require_unlocked_vault)
 │   │   │   ├── vault_routes.py  # Vault 解锁 / 改密码
 │   │   │   ├── onboarding.py    # 初始化引导
 │   │   │   ├── projects.py      # 项目 CRUD
-│   │   │   ├── identities.py   # Identity CRUD
-│   │   │   ├── secrets.py       # Secret CRUD + reveal + rotate + 连通性测试
+│   │   │   ├── secrets.py       # Secret 元数据 CRUD + rotate + 连通性测试（无明文读取）
 │   │   │   ├── bindings.py      # Binding CRUD
+│   │   │   ├── v1_gateway.py    # /v1 chat / embeddings / models 统一网关
+│   │   │   ├── sanitize.py      # PII scan/redact 附属能力
+│   │   │   ├── sign.py          # B 类进程内签名
+│   │   │   ├── d_class.py       # D 类受控明文授权
 │   │   │   ├── dashboard.py     # 仪表盘汇总 + 审计日志
 │   │   │   ├── render.py        # 模板渲染
 │   │   │   ├── export.py        # 导出 (Markdown/HTML/TXT)
 │   │   │   ├── proxy.py         # 反向代理 (httpx 转发)
 │   │   │   ├── logs.py          # 内存日志查询
 │   │   │   ├── settings.py      # 应用设置
-│   │   │   ├── test_center.py   # 测试中心 (identity/api/binding 探针)
+│   │   │   ├── test_center.py   # LLM / sign / D 类配置探针
 │   │   │   └── exceptions.py    # 统一 JSON 错误响应
 │   │   ├── services/
 │   │   │   ├── vault.py         # VaultService: 加密核心 (Fernet + PBKDF2)
-│   │   │   ├── template_render.py # [[placeholder]] 模板引擎
+│   │   │   ├── pii_scanner.py   # 无状态 PII 正则扫描/涂抹
+│   │   │   ├── template_render.py # 仅渲染 Binding/Secret 引用标记
+│   │   │   ├── sign_providers/  # weex / feishu-webhook / aliyun-sigv1
 │   │   │   ├── export_format.py # Markdown→HTML/TXT 转换
 │   │   │   ├── audit.py         # 审计日志追加
 │   │   │   ├── log_buffer.py    # 线程安全环形日志缓冲区
@@ -91,14 +100,14 @@ PolarPrivate/
 │   │   └── pages/                # 页面组件
 │   │       ├── DashboardPage.tsx
 │   │       ├── ProjectsPage.tsx
-│   │       ├── IdentitiesPage.tsx
 │   │       ├── SecretsPage.tsx
 │   │       ├── BindingsPage.tsx
-│   │       ├── TemplatePreviewPage.tsx
-│   │       ├── ExportPage.tsx
 │   │       ├── TestCenterPage.tsx
 │   │       ├── SettingsPage.tsx
 │   │       ├── LogsPage.tsx
+│   │       ├── UsersPage.tsx
+│   │       ├── UsagePage.tsx
+│   │       ├── AboutPage.tsx
 │   │       └── NotFoundPage.tsx   # 404 页面
 │   ├── package.json
 │   └── vite.config.ts
@@ -115,7 +124,7 @@ PolarPrivate/
 - 将 `VaultService` 实例挂载到 `app.state.vault`（进程级单例）。
 - 注册统一异常处理器。
 - 配置 CORS 中间件，仅允许 `localhost:12795`（Vite 开发服务器；5170 已分配给 PolarUI）。
-- 按前缀注册所有 API 路由（`/api/*`）和代理路由（`/proxy/*`）。
+- 注册管理 API（`/api/*`）、通用代理（`/proxy/*`）、统一 LLM 网关（`/v1/*`）与签名路由（`/sign/*`）。
 
 **`app/cli.py`** — Typer CLI，提供以下子命令:
 
@@ -135,15 +144,17 @@ PolarPrivate/
 
 | 模型         | 表名          | 说明                                                |
 | ------------ | ------------- | --------------------------------------------------- |
-| `DbMetadata` | `db_metadata` | 单行：salt、sentinel 密文、schema 版本、Fernet 密钥 |
+| `DbMetadata` | `db_metadata` | 单行：salt、sentinel 密文、schema 版本、wrapped Fernet keys |
 | `AppSettings`| `app_settings`| 单行：API 端口、JSON 偏好设置                       |
 | `Project`    | `projects`    | 顶层项目容器                                        |
-| `Identity`   | `identities`  | 点号分隔键 + 明文值（非密钥 PII）                   |
 | `Secret`     | `secrets`     | 点号分隔键 + Fernet 密文值                          |
 | `Binding`    | `bindings`    | 服务名 → Secret 引用键的映射                        |
+| `UserAccount`| `user_accounts` | 本地用户及其 wrapped Fernet keys                  |
+| `IdentityBinding` | `identity_bindings` | 外部服务用户名 → 本地用户；不是文档 PII Vault |
+| `CustomPiiPattern` | `custom_pii_patterns` | PII 扫描器的自定义正则                   |
 | `AuditLog`   | `audit_log`   | 追加写审计日志                                      |
 
-**关系**: `Project` 与 `Identity`、`Secret`、`Binding`、`AuditLog` 为一对多关系，外键 `CASCADE` 或 `SET NULL` 删除。
+**关系**: `Project` 与 `Secret`、`Binding`、`AuditLog` 为一对多关系，外键按用途使用 `CASCADE` 或 `SET NULL`。
 
 ### 3. 加密层
 
@@ -156,22 +167,30 @@ Master Password
 PBKDF2-HMAC-SHA256 (480,000 iterations) + random 16-byte salt
     │
     ▼
-32-byte Fernet key (base64-encoded)
+32-byte 派生 Fernet key
     │
-    ▼
-MultiFernet (支持密钥轮换)
+    ├── 验证 sentinel
+    └── 解开 schema v2 的 wrapped fernet_keys_json
+              │
+              ▼
+        MultiFernet (支持密钥轮换)
     │
     ├── encrypt_secret_value(plaintext) → ciphertext
     └── decrypt_secret_value(ciphertext) → plaintext
 ```
 
-- **初始化**: `create_new_database()` 生成随机 salt，派生 Fernet 密钥，用该密钥加密 sentinel 明文 `PRIVPORTAL_V1_UNLOCK_SENTINEL`。
-- **解锁**: `unlock()` 用输入的密码 + 存储的 salt 重新派生密钥，尝试解密 sentinel；成功则构建 MultiFernet 并标记为 unlocked。
+- **初始化**: `create_new_database()` 生成随机 salt，派生 Fernet 密钥，用该密钥加密 sentinel，并把 Fernet keys JSON 加密包装后写入 `fernet_keys_json`（schema v2）。
+- **解锁**: `unlock()` 用输入密码 + salt 重新派生密钥；验证 sentinel 后解开 wrapped keys，构建只驻内存的 MultiFernet。`schema_version < 2` 仅保留旧库兼容读取分支。
 - **密码更换**: `change_master_password()` 生成新 salt + 新密钥，重新加密所有 Secret 行。
 
 ### 4. API 层
 
-所有 API 路由挂载在 `/api` 前缀下，代理路由在 `/proxy` 下。
+入口按职责分为四组：
+
+- `/v1/*` — OpenAI 兼容的统一 LLM/Embeddings 网关；
+- `/proxy/*` — 按 Binding 转发任意上游 HTTP 请求；
+- `/api/*` — Vault、Secret、Binding、审计、PII scan/redact 等管理接口；
+- `/sign/*` — 使用 Vault 内 Secret 完成 B 类签名。
 
 **依赖注入** (`app/api/deps.py`):
 
@@ -179,38 +198,44 @@ MultiFernet (支持密钥轮换)
 - `get_vault()` — 从 `app.state.vault` 获取 VaultService。
 - `require_unlocked_vault()` — 检查 Vault 是否已解锁，未解锁返回 HTTP 423。
 
-### 5. 反向代理层
+### 5. 统一 LLM Gateway
 
-**`app/api/proxy.py`** — `{method} /proxy/{service_name}/{path:path}`（支持所有 HTTP 方法）:
+**`app/api/v1_gateway.py`** 提供 `POST /v1/chat/completions`、`POST /v1/embeddings` 与 `GET /v1/models`。文本/视觉调用以 QCSA 能力码表达需求，网关负责解析真实模型与 Binding、跨订阅负载均衡、限流等待、失败引流，以及响应 `model` 字段去供应商化。
 
 ```
-客户端请求 → PrivPortal 代理
+Agent / OpenAI SDK
+    │ model: "0001"
+    ▼
+PolarPrivate /v1/chat/completions
     │
-    ├── 1. 按 service_name 查找 Binding
-    ├── 2. 通过 Binding.secret_ref_key 查找 Secret
-    ├── 3. Vault 解密 Secret 获取明文 API Key
-    ├── 4. 注入 Authorization header（或自定义 auth_header）
-    ├── 5. httpx.AsyncClient 转发到 Secret.base_url + path
-    └── 6. 流式（SSE stream=true）或标准响应返回客户端
+    ├── QCSA → 真实模型 + service_name
+    ├── Binding → Secret
+    ├── Vault 进程内解密并注入认证头
+    └── 上游响应中的模型名改写为调用方能力码
 ```
 
-关键安全特性：明文 API Key 仅在内存中短暂存在，不记录到日志。
+### 6. Secret 使用通道
 
-### 6. 模板渲染与导出层
+- **A 类反向代理**：`app/api/proxy.py` 的 `{method} /proxy/{service_name}/{path:path}` 按 Binding 解密并注入认证头，支持普通与 SSE 响应。
+- **B 类签名**：`app/api/sign.py` 在进程内完成 HMAC/签名运算，只返回签名后的 headers。
+- **D 类受控信道**：`app/api/d_class.py` 仅对命中 `service_name + 可执行文件 SHA256` allowlist 的第三方 SDK 授权。
 
-**`app/services/template_render.py`** — 正则替换 `[[placeholder]]`:
+三条通道都以最小作用域使用明文。R9 已永久移除 `POST /api/secrets/{secret_id}/reveal`，GUI 对 Secret 只写不可读。
 
-- `[[identity.xxx]]` → 从 DB 读取 Identity 明文值替换
-- `[[binding.xxx]]` → 渲染为 `[secret_ref:...]` 标记（不解密）
-- `[[secret_ref.xxx]]` → 直接渲染为 `[secret_ref:...]`
+### 7. PII 扫描附属能力
 
-**`app/api/export.py`** — 支持三种导出格式:
+**`app/services/pii_scanner.py`** 对调用方文本做无状态正则扫描；`/api/sanitize/scan|redact` 返回命中或涂抹结果，并支持持久化自定义 pattern。它不依赖预登记 Identity，也不会自动介入 `/v1` 请求。
 
-- **Markdown**: 渲染后的原始文本
-- **HTML**: Markdown → HTML（via `markdown-it-py`）+ 最小 HTML5 文档包装
-- **TXT**: 去除 Markdown 标记的纯文本
+### 8. 遗留模板渲染与导出
 
-### 7. 日志层
+文档 Identity 脱敏与导出回填产品线已退役。`app/services/template_render.py` 当前只接受：
+
+- `[[binding.xxx]]` → `[secret_ref:...]`；
+- `[[secret_ref.xxx]]` → `[secret_ref:...]`。
+
+`decrypt` 参数仅为 deprecated API 兼容参数，不会解密或回填身份/Secret。`/api/export` 仍可把上述引用文本转为 Markdown、HTML 或 TXT。
+
+### 9. 日志层
 
 **`app/logging_config.py`** — structlog + stdlib 配置:
 
@@ -220,7 +245,7 @@ MultiFernet (支持密钥轮换)
 
 **`app/services/log_buffer.py`** — 线程安全的 1000 条环形缓冲区，前端通过 `GET /api/logs` 查询。
 
-### 8. 前端层
+### 10. 前端层
 
 React SPA 通过 Vite 开发服务器在 `localhost:12795` 运行。
 
@@ -230,14 +255,14 @@ React SPA 通过 Vite 开发服务器在 `localhost:12795` 运行。
 | ---------------- | -------------------- | -------------- |
 | `/`              | DashboardPage        | 仪表盘         |
 | `/projects`      | ProjectsPage         | 项目管理       |
-| `/identities`    | IdentitiesPage       | Identity 管理  |
 | `/secrets`       | SecretsPage          | Secret 管理    |
 | `/bindings`      | BindingsPage         | Binding 管理   |
-| `/template`      | TemplatePreviewPage  | 模板预览       |
-| `/export`        | ExportPage           | 导出           |
 | `/test-center`   | TestCenterPage       | 测试中心       |
 | `/settings`      | SettingsPage         | 设置           |
+| `/users`         | UsersPage            | 本地用户管理   |
 | `/logs`          | LogsPage             | 日志查看       |
+| `/usage`         | UsagePage            | 代理用量       |
+| `/about`         | AboutPage             | 项目信息       |
 | `*`              | NotFoundPage         | 404 页面       |
 
 所有页面组件通过 `React.lazy()` 懒加载并包裹在 `<Suspense>` 中，实现路由级代码分割。
@@ -270,25 +295,22 @@ INSERT INTO secrets (value = <ciphertext>)
 返回 SecretOut (不含 value 字段)
 ```
 
-### 代理转发的流程
+### 统一 LLM 供给流程
 
 ```
-AI Agent 发送请求到 /proxy/llm.openai/v1/chat/completions
+AI Agent 发送 POST /v1/chat/completions，model="0001"
     │
     ▼
-查找 Binding(service_name="llm.openai") → secret_ref_key
+QCSA 路由解析 → 真实模型 + service_name
     │
     ▼
-查找 Secret(key=secret_ref_key) → 解密获得 API Key
+查找全局 Binding → Secret；Vault 在内存中解密
     │
     ▼
-注入 Authorization: Bearer <key> 到请求头
+注入认证头并用共享 httpx.AsyncClient 转发
     │
     ▼
-httpx.AsyncClient → https://api.openai.com/v1/chat/completions
-    │
-    ▼
-响应流式返回客户端（如果 stream=true，使用 StreamingResponse）
+上游响应流式或标准返回；对不透明能力码回写 model="0001"
 ```
 
 ## 配置

@@ -65,7 +65,7 @@ def test_encrypt_decrypt_roundtrip(db_session: Session) -> None:
     vault = VaultService()
     vault.unlock(db_session, "roundtrip-pw")
 
-    original = "sk-test-api-key-0123456789"
+    original = "sk-test-api-key-0123456789"  # gitleaks:allow (synthetic test fixture)
     ct = vault.encrypt_secret_value(original)
     assert ct != original
     assert vault.decrypt_secret_value(ct) == original

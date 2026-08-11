@@ -1,7 +1,40 @@
 {
   "project": "PolarPrivate",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "capabilities": [
+    {
+      "id": "polarprivate.llm.chat",
+      "service_name": "polarprivate",
+      "description": "OpenAI 兼容统一 LLM 网关；按 QCSA 能力码或模型别名路由，并在进程内注入已绑定凭证",
+      "transport": "http",
+      "endpoint": "/v1/chat/completions",
+      "method": "POST",
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 300000
+    },
+    {
+      "id": "polarprivate.llm.embeddings",
+      "service_name": "polarprivate",
+      "description": "OpenAI 兼容 Embeddings 网关；使用 E000 能力码路由到已配置的嵌入服务",
+      "transport": "http",
+      "endpoint": "/v1/embeddings",
+      "method": "POST",
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 300000
+    },
+    {
+      "id": "polarprivate.llm.models",
+      "service_name": "polarprivate",
+      "description": "列出 Vault 解锁后当前可用的 OpenAI 兼容模型目录",
+      "transport": "http",
+      "endpoint": "/v1/models",
+      "method": "GET",
+      "idempotent": true,
+      "side_effects": false,
+      "timeout_ms": 10000
+    },
     {
       "id": "polarprivate.proxy",
       "service_name": "polarprivate",
@@ -23,7 +56,7 @@
     {
       "id": "polarprivate.render",
       "service_name": "polarprivate",
-      "description": "渲染模板（用身份/密钥变量替换占位符）",
+      "description": "将 binding/secret_ref 占位符渲染为不含明文的引用标记",
       "transport": "http",
       "endpoint": "/api/render",
       "method": "POST",
@@ -84,7 +117,7 @@
     {
       "id": "polarprivate.export",
       "service_name": "polarprivate",
-      "description": "导出项目配置文件（markdown/html/txt）",
+      "description": "导出仅含 Binding/Secret 引用标记的项目配置文件（markdown/html/txt）",
       "transport": "http",
       "endpoint": "/api/export",
       "method": "POST",

@@ -13,7 +13,7 @@ def _seed(client) -> None:
             "/api/secrets",
             json={
                 "key": "secret.redact.test",
-                "value": "sk-SUPERSECRETVALUE12345678",
+                "value": "sk-SUPERSECRETVALUE12345678",  # gitleaks:allow (synthetic test fixture)
                 "project_id": None,
                 "base_url": "https://upstream.example",
             },
@@ -37,7 +37,7 @@ def test_proxy_upstream_4xx_body_redacts_secret(client, app):
     """If upstream echoes back the API key in a 401 error body, it must be scrubbed."""
     _seed(client)
 
-    leaked = "Your API key sk-SUPERSECRETVALUE12345678 is invalid"
+    leaked = "Your API key sk-SUPERSECRETVALUE12345678 is invalid"  # gitleaks:allow (synthetic test fixture)
     mock_resp = MagicMock()
     mock_resp.status_code = 401
     mock_resp.content = leaked.encode()
@@ -50,7 +50,7 @@ def test_proxy_upstream_4xx_body_redacts_secret(client, app):
 
     r = client.get("/proxy/redactsvc/v1/models")
     assert r.status_code == 401
-    assert "sk-SUPERSECRETVALUE12345678" not in r.text
+    assert "sk-SUPERSECRETVALUE12345678" not in r.text  # gitleaks:allow (synthetic test fixture)
     assert "[REDACTED]" in r.text
 
 
@@ -61,7 +61,7 @@ def test_proxy_httpx_error_redacts_secret(client, app):
     mock_client = MagicMock()
     mock_client.request = AsyncMock(
         side_effect=httpx.ConnectError(
-            "Connection to upstream.example failed with key sk-SUPERSECRETVALUE12345678"
+            "Connection to upstream.example failed with key sk-SUPERSECRETVALUE12345678"  # gitleaks:allow (synthetic test fixture)
         )
     )
     mock_client.aclose = AsyncMock()
@@ -69,7 +69,7 @@ def test_proxy_httpx_error_redacts_secret(client, app):
 
     r = client.get("/proxy/redactsvc/v1/models")
     assert r.status_code == 502
-    assert "sk-SUPERSECRETVALUE12345678" not in r.text
+    assert "sk-SUPERSECRETVALUE12345678" not in r.text  # gitleaks:allow (synthetic test fixture)
     assert "[REDACTED]" in r.text
 
 
@@ -77,7 +77,7 @@ def test_proxy_streaming_4xx_redacts_secret(client, app):
     """Streaming path upstream 4xx error body must also be sanitized."""
     _seed(client)
 
-    leaked_body = b'{"error":"invalid key sk-SUPERSECRETVALUE12345678"}'
+    leaked_body = b'{"error":"invalid key sk-SUPERSECRETVALUE12345678"}'  # gitleaks:allow (synthetic test fixture)
     mock_upstream = MagicMock()
     mock_upstream.status_code = 403
     mock_upstream.headers = httpx.Headers({"content-type": "application/json"})
@@ -95,7 +95,7 @@ def test_proxy_streaming_4xx_redacts_secret(client, app):
         json={"model": "x", "messages": [], "stream": True},
     )
     assert r.status_code == 403
-    assert "sk-SUPERSECRETVALUE12345678" not in r.text
+    assert "sk-SUPERSECRETVALUE12345678" not in r.text  # gitleaks:allow (synthetic test fixture)
     assert "[REDACTED]" in r.text
 
 

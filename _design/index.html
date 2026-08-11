@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolarPrivate · 定位与开源决策 · 确认页</title>
+<style>
+  :root { --ink:#1a1a2e; --muted:#5c5c70; --acc:#2456d6; --ok:#0a7d4f; --warn:#b45309; --bad:#b3261e; --bg:#fafaf8; --card:#ffffff; --line:#e4e4ea; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); margin:0; line-height:1.75; }
+  .wrap { max-width:920px; margin:0 auto; padding:32px 24px 80px; }
+  header { border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:20px; }
+  header h1 { margin:0 0 6px; font-size:24px; }
+  header .meta { color:var(--muted); font-size:13px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 24px; margin:16px 0; }
+  h2 { font-size:18px; margin:0 0 12px; border-left:4px solid var(--acc); padding-left:10px; }
+  h3 { font-size:15px; margin:18px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; word-break:break-word; }
+  th,td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { background:#f2f3f7; white-space:nowrap; }
+  code { background:#f0f1f5; padding:1px 5px; border-radius:4px; font-size:0.9em; }
+  a { color:var(--acc); }
+  .pending { color:var(--warn); font-weight:600; }
+  .ok { color:var(--ok); font-weight:600; }
+  .bad { color:var(--bad); }
+  .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:#eef2ff; color:var(--acc); margin:0 6px 4px 0; }
+  .tag.hot { background:#fff1e6; color:var(--warn); font-weight:700; }
+  ul { margin:8px 0; padding-left:22px; }
+  #now { background:#fff8e6; border-color:#f0d48a; }
+  fieldset { border:1px solid var(--line); border-radius:8px; margin:14px 0; padding:10px 14px; }
+  legend { font-weight:700; font-size:14.5px; padding:0 6px; }
+  fieldset label { display:block; padding:7px 10px; margin:5px 0; border:1px solid var(--line); border-radius:8px; cursor:pointer; font-size:13.5px; }
+  fieldset label:hover { border-color:var(--acc); }
+  fieldset label.rec { background:#f0fdf6; border-color:#a7dcc0; }
+  fieldset label input { margin-right:8px; }
+  .rec-tag { color:var(--ok); font-weight:700; font-size:12px; }
+  #copy textarea { width:100%; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; padding:10px; border:1px solid var(--line); border-radius:8px; background:#fbfbfd; }
+  #copy button { margin-top:10px; background:var(--acc); color:#fff; border:none; border-radius:8px; padding:10px 22px; font-size:14.5px; cursor:pointer; }
+  #copy button:hover { opacity:.9; }
+  footer { color:var(--muted); font-size:12.5px; margin-top:28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>PolarPrivate · 定位收敛与开源策略</h1>
+  <div class="meta">Master Flow：Step 2 SOTA + Step 3 门禁设计（等待 HITL 确认） · 2026-08-11 · composer-superpower</div>
+</header>
+
+<nav id="toc">
+  <span class="tag"><a href="#now">当前状态</a></span>
+  <span class="tag"><a href="#g1">G1 需求编译</a></span>
+  <span class="tag"><a href="#facts">取证事实</a></span>
+  <span class="tag"><a href="#g2">G2 SOTA 检索</a></span>
+  <span class="tag"><a href="#plan">方案摘要</a></span>
+  <span class="tag"><a href="#g3">G3 门禁设计</a></span>
+  <span class="tag hot"><a href="#options">★ 待你拍板（D1–D5）</a></span>
+  <span class="tag"><a href="#copy">复制文本</a></span>
+</nav>
+
+<section id="now">
+  <h2>当前状态：卡在 G3 门</h2>
+  <p><strong>U1（docs/first-principles.md）已完成并通过异模型交叉验收（ACCEPT）。</strong>其余工作在你确认前一律不动：不改 README、不动仓库结构、不碰发布管道。请在 <a href="#options">#options</a> 选择 D1–D5，点击底部「复制文本」，把内容粘贴回对话 —— 粘贴即视为 G3 通过。</p>
+</section>
+
+<section id="g1">
+  <h2>G1 · 需求编译（已落盘）</h2>
+  <table>
+    <tr><th>编号</th><th>需求</th><th>状态</th></tr>
+    <tr><td>R1</td><td>把第一性原理梳理沉淀为 <code>docs/first-principles.md</code></td><td class="ok">已完成（U1，B 验 ACCEPT）</td></tr>
+    <tr><td>R2</td><td>决策：隐私脱敏「其他部分」还做吗？还是精准定位为「密钥管理 + 统一 LLM Proxy」？</td><td class="pending">D1 待拍板</td></tr>
+    <tr><td>R3</td><td>开源怎么做：开箱能用、好用、不泄露隐私；现有桌面开源副本不敢推广</td><td class="pending">D2/D5 待拍板</td></tr>
+    <tr><td>R4</td><td>「开源库变成本仓库子文件夹」提案（条件：Agent 认同才 move）</td><td class="pending">D3 待拍板（取证给出否定性事实，见 #facts）</td></tr>
+  </table>
+  <h3>边界与非目标</h3>
+  <ul>
+    <li>本轮已做：U1 文档、三路取证/SOTA 真搜、本确认页；<strong>未动任何仓库结构、README、管道脚本</strong></li>
+    <li>确认后才做：U2 叙事收口、U3 identity 残留清理、U4 管道加固、U5 公镜像开箱即用（见 #g3 单元表）</li>
+  </ul>
+</section>
+
+<section id="facts">
+  <h2>取证事实（三路 subagent 调查结论）</h2>
+  <h3>仓库拓扑真相</h3>
+  <ul>
+    <li><strong>工作仓库</strong> <code>~/Polarisor/PolarPrivate</code> → origin <code>beichenO2/PolarPrivate</code>：匿名访问 404 ⇒ <strong>私有仓</strong>。main 已全量推送，含 740 个触及 <code>sync/vault-backup.json</code>（Fernet 加密备份）的提交——<span class="ok">未公开暴露</span>，但常驻私仓历史。</li>
+    <li><strong>桌面 <code>~/Desktop/opensource</code> 不是一个仓库</strong>：是 18 个 <code>*_OpenSource</code> 镜像的 staging 容器（PolarPrivate、PolarClaw、KnowLever、tqsdk……），由 <code>~/Polarisor/sanitize-template/sanitize.sh + sync-opensource.sh</code> <strong>自动净化同步</strong>（最近一次：2026-08-11 05:02）。「没认真维护」的真相是：<strong>管道在自动维护，但没人管质量</strong>。</li>
+    <li><strong>PolarPrivate 镜像</strong> → <code>beichenO2/PolarPrivate_OpenSource</code>：<strong>公开仓</strong>（0 star / 0 fork），15 个提交，与工作仓库<strong>不同源</strong>（独立历史）；干净——无 vault-backup、无 .env、无 *.db，历史中也从未出现过。</li>
+  </ul>
+  <h3>既有管道的 5 个缺口（U4 的靶子）</h3>
+  <ul>
+    <li>① rsync 的是<strong>脏工作目录</strong>而非 HEAD——你未提交的 WIP（<code>main.py.bak-preproxy</code>、新测试、新文档）已被发布到公网镜像</li>
+    <li>② 安全扫描只拦 <code>sk-</code>/<code>ghp_</code>/<code>AKIA</code> 前缀、<code>/Users/</code> 路径、Tailscale IP，且<strong>排除 tests/ 目录</strong></li>
+    <li>③ <code>sanitize.sh</code> 对目标目录执行 <code>rm -rf</code> 重建——这直接否决「并入子文件夹」方案（会互相摧毁）</li>
+    <li>④ 18 个镜像中 PolarFlow、Polarisor 不在脚本 ALL_PROJECTS(16) 覆盖内</li>
+    <li>⑤ staging 路径硬编码 <code>$HOME/Desktop/opensource</code>（可用 <code>POLARISOR_OPENSOURCE</code> 环境变量覆盖）</li>
+  </ul>
+  <h3>「子文件夹 move」的事实性障碍（回答 R4）</h3>
+  <ul>
+    <li>两仓根提交不同，搬移不携带历史；嵌套 <code>.git</code>（23MB）成为 embedded repo；一个工作树两个 origin；<code>backend/ frontend/ docs/</code> 路径高度重名；submodule 的 gitlink 形态会被管道的 <code>rm -rf</code> 逻辑误删。<strong>结论：不认同字面 move；你的真实诉求「统一管理」由 D2-a + U4 达成。</strong></li>
+  </ul>
+</section>
+
+<section id="g2">
+  <h2>G2 · SOTA 检索记录（真搜，25 组检索词）</h2>
+  <h3>竞品格局（19 组检索）</h3>
+  <table>
+    <tr><th>发现</th><th>要点</th><th>取舍</th></tr>
+    <tr><td><a href="https://docs.litellm.ai/docs/">LiteLLM</a> / <a href="https://github.com/songquanpeng/one-api">one-api</a> / new-api / <a href="https://github.com/Portkey-AI/gateway">Portkey</a> / Kong / Helicone / Bifrost</td><td>通用 LLM 网关成熟：统一 API、虚拟 key、路由、负载均衡；偏团队/多用户基础设施，无「单用户加密保险库 + Agent 隔离」主轴</td><td>采：证明赛道拥挤，差异点必须换维度</td></tr>
+    <tr><td>FlowGate（63★ alpha）/ Tokfence（1★）/ Vultrino（3★）/ <a href="https://github.com/Infisical/agent-vault">Infisical Agent Vault</a>（2055★）</td><td>「Agent 不持有 Key」口号已有人喊；Agent Vault 是通用 MITM 凭据代理，最接近但无 LLM 路由/能力码</td><td>采：卖点单点已被占位，<strong>组合边界</strong>（能力码隐藏模型 + A/B/D 三通道 + 结构性无 reveal + 本地单用户）无人占据</td></tr>
+    <tr><td><a href="https://github.com/data-privacy-stack/presidio">Microsoft Presidio</a>（10.4k★）/ LLM Guard（已归档）</td><td>PII 脱敏 SOTA 是 Presidio，LiteLLM 已官方集成；LLM Guard 归档不可作依赖</td><td>采：<strong>脱敏自建不划算，需要时集成 Presidio</strong></td></tr>
+    <tr><td>HN「代理藏密钥」讨论 132 分/56 评</td><td>Agent 密钥隔离痛点真实且热</td><td>采：定位方向有需求佐证</td></tr>
+  </table>
+  <h3>开源发布工程（6 组检索）</h3>
+  <table>
+    <tr><th>发现</th><th>要点</th><th>取舍</th></tr>
+    <tr><td><a href="https://github.com/google/copybara">Copybara</a> / git subtree / squash 白名单树</td><td>Google 系「私仓真源 + 单向导出」正是你已有拓扑的工业化版本</td><td>采：拓扑不用换，加固即可</td></tr>
+    <tr><td><a href="https://github.com/gitleaks/gitleaks">gitleaks</a> + <a href="https://github.com/trufflesecurity/trufflehog">trufflehog</a> + GitHub push protection</td><td>三层防线：pre-commit 快扫 / CI 全史扫 / 平台推前阻断；金丝雀假密钥断言管道会拦截</td><td>采：U4 工具链</td></tr>
+    <tr><td>Infisical / Vaultwarden 的 compose quickstart</td><td>密钥类 self-hosted 项目的开箱标准：compose 一键起 + 外部卷 + healthcheck + README ≤5 步 + TTFS&lt;5min</td><td>采：U5 模板</td></tr>
+    <tr><td>威胁模型披露惯例（DNS rebinding 等）</td><td>「localhost ≠ 信任边界」需在 SECURITY.md 声明</td><td>采：U5 内容</td></tr>
+  </table>
+</section>
+
+<section id="plan">
+  <h2>方案摘要（相对 SOTA 的差异与改进）</h2>
+  <ul>
+    <li><strong>定位</strong>：收敛为「<strong>Agent 供给平面：本地密钥保险库 + 统一 LLM Proxy</strong>」。护城河是组合边界（能力码隐藏模型、结构性无 reveal、A/B/D 三通道、fail-closed），不与 LiteLLM 们拼通用网关功能。PII 正则扫描作为附属能力保留（PolarClaw 在消费）；文档脱敏回填线正式退役，将来需要强脱敏 → 集成 Presidio。</li>
+    <li><strong>开源</strong>：沿用你已有的「私仓真源 → 净化管道 → 公镜像」（与 Copybara 模式同构），把投资放在<strong>管道加固（U4）</strong>与<strong>公镜像开箱体验（U5）</strong>，而非更换拓扑。</li>
+    <li><strong>桌面副本</strong>：不并入本仓；staging 保留原位（或迁 ~/Polarisor/_opensource，成本是迁 18 个镜像）。</li>
+  </ul>
+</section>
+
+<section id="g3">
+  <h2>G3 · 门禁设计（待 ACK）</h2>
+  <h3>G-matrix 定制</h3>
+  <table>
+    <tr><th>门禁</th><th>状态/定制</th></tr>
+    <tr><td>G1 需求编译</td><td class="ok">已过（#g1）</td></tr>
+    <tr><td>G2 SOTA 真搜</td><td class="ok">已过（#g2，25 组检索记录）</td></tr>
+    <tr><td>G3 门禁 HITL</td><td class="pending">本页等待你的「复制文本」粘贴</td></tr>
+    <tr><td>G4 VERIFY 先于 ACT</td><td>每单元一条 VERIFY_CMD（下表）；无证据不 DONE</td></tr>
+    <tr><td>G5 TDD RED 可见</td><td>核心 TDD 场景 = U4 金丝雀假密钥（埋入→管道必须拒绝=RED→移除→通过=GREEN）；U2/U3 中行为变更部分测试先行，纯文案豁免</td></tr>
+    <tr><td>G6 跨模型验收</td><td>每单元 A 做 B 验，opus-5-max-fast ↔ gpt-sol-max-fast 交替；U1 记录：A=父会话，B=opus，VERDICT=ACCEPT</td></tr>
+    <tr><td>G7 自审后展示</td><td>本页已自审（结构/选项/脚本/对比度）</td></tr>
+    <tr><td>G8 完成 PDF</td><td>全部单元完成后出 <code>_report/</code> PDF（D4 可豁免）</td></tr>
+  </table>
+  <h3>模型例外（记录在案）</h3>
+  <p>用户显式指定 subagent 模型为 <code>opus-5-max-fast</code> 与 <code>gpt-sol-max-fast</code>，按 using-superpowers 优先级覆盖 skill 默认的 grok/composer 分工。</p>
+  <h3>执行单元（确认后仍逐单元派发，禁一把梭；上一单元 B 验 ACCEPT 才开下一个）</h3>
+  <table>
+    <tr><th>单元</th><th>范围（Allowed writes）</th><th>VERIFY_CMD（草案）</th><th>A / B</th></tr>
+    <tr><td><strong>U2 叙事收口</strong></td><td>README.md、CLAUDE.md、capabilities.json（补 /v1 声明）、docs/api-reference.md、docs/architecture.md、docs/security-model.md（fernet 口径 + 旧库回退注记）、docs/first-principles.md §6 回填</td><td><code>pytest -q</code> 全绿 + 断言脚本：docs 中 Reveal 仅以「已移除」语境出现、capabilities.json 含 v1 网关条目</td><td>A=gpt-sol / B=opus</td></tr>
+    <tr><td><strong>U3 identity 残留清理</strong></td><td>sdk/、sdk-ts/（恒等中间件移除或显式 deprecated + 假数据测试处置）、frontend 过时文案（AboutPage、IIdentityOut）</td><td>backend pytest + sdk/sdk-ts 测试套件全绿 + <code>rg identities sdk/ sdk-ts/</code> 仅剩变更说明</td><td>A=opus / B=gpt-sol</td></tr>
+    <tr><td><strong>U4 发布管道加固</strong> <span class="bad">（跨仓库：~/Polarisor/sanitize-template/，需 D4-c 显式授权）</span></td><td>sanitize.sh、sync-opensource.sh：发布源改干净 HEAD（不发 WIP/.bak）、扫描覆盖 tests/、接入 gitleaks、金丝雀断言、补 PolarFlow/Polarisor 覆盖</td><td>金丝雀脚本：埋假 key → 管道拒绝（RED）→ 移除 → 通过（GREEN），单命令断言</td><td>A=opus / B=gpt-sol</td></tr>
+    <tr><td><strong>U5 公镜像开箱即用</strong></td><td>私仓内 README quickstart（≤5 步）、docker-compose.yml（独立于 Polarisor 生态可跑）、SECURITY.md 威胁模型、clean-clone 冒烟脚本；经管道发布到镜像</td><td>冒烟脚本：干净目录 clone 镜像 → 起服务 → <code>/health</code> ok + <code>/v1/models</code> 200</td><td>A=gpt-sol / B=opus</td></tr>
+  </table>
+</section>
+
+<section id="options">
+  <h2>★ 待你拍板（改选后底部文本自动更新）</h2>
+
+  <fieldset data-gate="D1-项目定位">
+    <legend>D1 · 项目定位（单选）</legend>
+    <label class="rec"><input type="radio" name="d1" value="a" checked><span class="rec-tag">RECOMMENDED</span> 收敛：本地密钥保险库 + 统一 LLM Proxy（Agent 供给平面）；PII 扫描留作附属能力；文档脱敏回填线正式退役</label>
+    <label><input type="radio" name="d1" value="b">恢复双域：重建 identity 脱敏 + 导出回填（代价：当前零消费方；SOTA 证据倾向集成 Presidio 而非自建；开源叙事被稀释）</label>
+    <label><input type="radio" name="d1" value="c">暂不定位：只修无争议叙事债（capabilities /v1、Reveal 残留、fernet 口径）</label>
+  </fieldset>
+
+  <fieldset data-gate="D2-开源拓扑">
+    <legend>D2 · 开源拓扑（单选）</legend>
+    <label class="rec"><input type="radio" name="d2" value="a" checked><span class="rec-tag">RECOMMENDED</span> 沿用并加固既有拓扑：私仓真源 → sanitize 管道 → PolarPrivate_OpenSource 公镜像（Copybara 同构）</label>
+    <label><input type="radio" name="d2" value="b">远期 public-first：本仓直接公开（前置：vault 备份外移 + 800+ 提交历史清洗；本轮不执行）</label>
+    <label><input type="radio" name="d2" value="c">公库并入本仓子文件夹/submodule（原提案；取证 5 条障碍见 #facts，管道 rm -rf 会互相摧毁）</label>
+  </fieldset>
+
+  <fieldset data-gate="D3-桌面staging处置">
+    <legend>D3 · 桌面 opensource 文件夹（单选）</legend>
+    <label class="rec"><input type="radio" name="d3" value="a" checked><span class="rec-tag">RECOMMENDED</span> 保留 ~/Desktop/opensource 原位作为管道 staging，仅在 U4 中加固</label>
+    <label><input type="radio" name="d3" value="b">迁至 ~/Polarisor/_opensource 并设 POLARISOR_OPENSOURCE（更整洁；需迁 18 个镜像并回归验证管道）</label>
+    <label><input type="radio" name="d3" value="c">并入本仓（同 D2-c；不推荐）</label>
+  </fieldset>
+
+  <fieldset data-gate="D4-门禁与授权ACK">
+    <legend>D4 · 门禁与授权（多选）</legend>
+    <label class="rec"><input type="checkbox" name="d4" value="a" checked>确认 G1–G8 门禁矩阵 + 单元制派发（禁一把梭）+ 每单元异模型 A 做 B 验</label>
+    <label class="rec"><input type="checkbox" name="d4" value="b" checked>确认模型例外：subagent 用 opus-5-max-fast / gpt-sol-max-fast（覆盖 skill 默认 grok/composer）</label>
+    <label><input type="checkbox" name="d4" value="c">授权 U4 修改生态级脚本 ~/Polarisor/sanitize-template/（跨出本仓库边界，默认不勾）</label>
+    <label class="rec"><input type="checkbox" name="d4" value="d" checked>全部完成后产出 _report/ PDF（取消勾选 = G8 豁免）</label>
+  </fieldset>
+
+  <fieldset data-gate="D5-本轮执行单元">
+    <legend>D5 · 本轮执行哪些单元（多选，按依赖顺序执行）</legend>
+    <label class="rec"><input type="checkbox" name="d5" value="U2" checked>U2 叙事收口（README/CLAUDE/capabilities/docs 口径统一）</label>
+    <label class="rec"><input type="checkbox" name="d5" value="U3" checked>U3 identity 残留清理（SDK 恒等中间件、假数据测试、前端文案）</label>
+    <label class="rec"><input type="checkbox" name="d5" value="U4" checked>U4 发布管道加固（金丝雀 TDD；需同时勾 D4-c）</label>
+    <label class="rec"><input type="checkbox" name="d5" value="U5" checked>U5 公镜像开箱即用（compose/quickstart/SECURITY.md/冒烟）</label>
+  </fieldset>
+</section>
+
+<section id="copy">
+  <h2>复制文本（粘贴回对话 = G3 通过）</h2>
+  <textarea id="copy-out" rows="14" readonly></textarea>
+  <br>
+  <button type="button" id="copy-btn">复制文本</button>
+  <p id="copy-status" hidden>已复制，请粘贴回 Cursor 对话。</p>
+</section>
+
+<footer>
+  G7 自审：单活跃页 ✓ / 层次齐全 ✓ / 每决策有控件 ✓ / 复制文本随选项动态更新 ✓ / 已 open ✓ ·
+  生成：composer-superpower Step 2–3 · 2026-08-11 16:10 · 本页为唯一活跃确认页
+</footer>
+
+</div>
+<script>
+(function () {
+  const out = document.getElementById('copy-out');
+  const btn = document.getElementById('copy-btn');
+  const status = document.getElementById('copy-status');
+
+  function selectedLines() {
+    const lines = ['确认：'];
+    document.querySelectorAll('fieldset[data-gate]').forEach((fs) => {
+      const key = fs.getAttribute('data-gate');
+      const checked = [...fs.querySelectorAll('input:checked')];
+      if (!checked.length) {
+        lines.push('- ' + key + ': （未选）');
+        return;
+      }
+      const vals = checked.map((el) => {
+        const lab = el.closest('label');
+        let text = (lab ? lab.textContent : el.value).replace(/\s+/g, ' ').trim();
+        text = text.replace(/^RECOMMENDED\s*/, '');
+        return '[' + el.value + '] ' + text;
+      });
+      lines.push('- ' + key + ': ' + vals.join('；'));
+    });
+    lines.push('VERIFY: 按 #g3 单元表逐单元执行（U1 已 ACCEPT）');
+    lines.push('例外：无（如有手改请在此注明）');
+    return lines.join('\n');
+  }
+
+  function refresh() { out.value = selectedLines(); }
+  document.querySelectorAll('fieldset[data-gate] input')
+    .forEach((el) => el.addEventListener('change', refresh));
+  refresh();
+
+  btn.addEventListener('click', async () => {
+    refresh();
+    try {
+      await navigator.clipboard.writeText(out.value);
+      status.hidden = false;
+      setTimeout(() => { status.hidden = true; }, 2000);
+    } catch (_) {
+      out.select();
+      document.execCommand('copy');
+      status.hidden = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

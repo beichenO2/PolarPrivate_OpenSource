@@ -82,7 +82,7 @@ class TestFullJourney:
         assert r.json()["secret_count"] == 0
 
         # --- 5. Create secret ---
-        r = c.post("/api/secrets", json={"key": "secret.smoke.api", "value": "sk-smoke-secret-val", "project_id": pid, "base_url": "https://httpbin.org", "category": "smoke"})
+        r = c.post("/api/secrets", json={"key": "secret.smoke.api", "value": "sk-smoke-secret-val", "project_id": pid, "base_url": "https://httpbin.org", "category": "smoke"})  # gitleaks:allow (synthetic test fixture)
         assert r.status_code == 201
         sec = r.json()
         sec_id = sec["id"]
@@ -91,7 +91,7 @@ class TestFullJourney:
         # --- 6. Verify secret metadata is readable without leaking plaintext ---
         r = c.get(f"/api/secrets/{sec_id}")
         assert r.status_code == 200
-        assert r.json().get("value", "") != "sk-smoke-secret-val"
+        assert r.json().get("value", "") != "sk-smoke-secret-val"  # gitleaks:allow (synthetic test fixture)
 
         # --- 7. Rotate secret ---
         r = c.post(f"/api/secrets/{sec_id}/rotate", json={"value": "sk-smoke-rotated"})
