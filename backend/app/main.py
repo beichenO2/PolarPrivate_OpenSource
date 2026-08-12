@@ -40,9 +40,13 @@ from app.services.vault import VaultService
 
 
 
+# Must exceed any single ServiceBudget.max_concurrent and leave headroom when
+# several services are hot. Old (20/10) was below dashboard "total_capacity"
+# and collapsed under 16 parallel /proxy/llm.deepseek calls (2026-08-12).
+# Recalibrated 2026-08-13 for AKM 5-arm + higher lant/deepseek ceilings.
 _UPSTREAM_LIMITS = httpx.Limits(
-    max_connections=20,
-    max_keepalive_connections=10,
+    max_connections=128,
+    max_keepalive_connections=64,
     keepalive_expiry=30,
 )
 

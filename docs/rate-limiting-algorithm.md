@@ -132,13 +132,21 @@ knowlever: 3    digist: 3    sotagent: 2    unknown: 5
 
 ### 默认 Service 限制（仅并发被强制；rpm 仅用于统计展示，不再节流）
 
-| Service | max_concurrent |
-|---------|---------------|
-| `llm.glm51.enterprise` | 10 |
-| `llm.aliyun.codingplan` | 8 |
-| `llm.aliyun.dashscope` | 50 |
-| `llm.minimax` | 12 |
-| 其他（默认） | 3 |
+> **2026-08-12 重校准**：数值是本地 httpx 连接安全上限，不是厂商宣传配额。
+> 官方 DeepSeek Flash 并发 2500，但旧配置下 `/proxy` 无信号量 + `max_connections=20`
+> 在约 16 并发时 504/断连；`llm.lant` 曾落默认 3，卡死五臂并行。
+
+| Service | max_concurrent | 依据 |
+|---------|---------------|------|
+| `llm.glm51.enterprise` | 10 | 压测稳定区 ~12–15，留余量 |
+| `llm.aliyun.codingplan` | 8 | 易 429，保持保守 |
+| `llm.aliyun.dashscope` | 24 | 原 50 超过旧连接池；视觉批量仍够用 |
+| `llm.minimax` | 10 | 压测下限 ~12，减 2 |
+| `llm.deepseek` | 12 | 官方 2500；本地实测 8 稳、16 挂 |
+| `llm.lant` | 8 | **原缺失→默认 3**；五臂+余量 |
+| 其他（默认） | 5 | 原 3 过紧 |
+
+配套：`httpx.Limits(max_connections=64, max_keepalive_connections=32)`；`/proxy` 与 `/v1` 共用 `ServiceBudget` 信号量。
 
 ### 环境变量
 
