@@ -98,3 +98,28 @@ def test_privportal_test_command() -> None:
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_serve_command_help() -> None:
+    runner = CliRunner()
+    result = runner.invoke(app_cli, ["serve", "--help"])
+    assert result.exit_code == 0, result.output
+    out = (result.stdout or "").lower()
+    assert "uvicorn" in out or "standalone" in out or "localhost" in out
+
+
+def test_serve_runs_uvicorn_on_localhost(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    def fake_run(app: str, **kwargs: object) -> None:
+        calls.append({"app": app, **kwargs})
+
+    monkeypatch.setattr("uvicorn.run", fake_run)
+
+    result = CliRunner().invoke(app_cli, ["serve"])
+
+    assert result.exit_code == 0, result.output
+    assert len(calls) == 1
+    assert calls[0]["app"] == "app.main:app"
+    assert calls[0]["host"] == "127.0.0.1"
+    assert calls[0]["port"] == 12790

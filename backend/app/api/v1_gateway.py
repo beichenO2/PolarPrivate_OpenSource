@@ -113,7 +113,6 @@ _SERVICE_DISPLAY_NAMES: dict[str, str] = {
     "llm.aliyun.codingplan": "阿里云 CodingPlan",
     "llm.aliyun.dashscope": "阿里云 DashScope",
     "llm.minimax": "MiniMax",
-    "llm.deepseek": "DeepSeek 官方 API",
 }
 
 

@@ -38,30 +38,12 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.glm51.enterprise",
         description="GLM-5.1（200K 上下文）；显式别名 glm-5.1 / glm51。",
     ),
-    # ── lant.top relay ───────────────────────────────────────────────────
+    # ── glm2 独立线（新购 128K key，端点 88.api456.me）──────────────────
     ModelEntry(
         id="glm-5.2",
-        provider="lant",
-        service="llm.lant",
-        description="GLM-5.2 via lant.top relay（https://lant.top/relay-api/v1）；别名 glm2 / lant_glm_52。",
-    ),
-    ModelEntry(
-        id="lant_glm_52",
-        provider="lant",
-        service="llm.lant",
-        description="显式 lant 线：GLM-5.2（上游 glm-5.2 @ llm.lant）。与讯飞/官方线区分。",
-    ),
-    ModelEntry(
-        id="deepseek-v4-pro",
-        provider="lant",
-        service="llm.lant",
-        description="DeepSeek V4 Pro via lant.top relay（https://lant.top/relay-api/v1）；别名 lant_ds_v4_pro。",
-    ),
-    ModelEntry(
-        id="lant_ds_v4_pro",
-        provider="lant",
-        service="llm.lant",
-        description="显式 lant 线：DeepSeek V4 Pro（上游 deepseek-v4-pro @ llm.lant）。勿与官方/Nebula/xfyun DS 混淆。",
+        provider="glm2",
+        service="llm.glm2",
+        description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。填入 key 后可用。",
     ),
     ModelEntry(
         id="xopkimik26",
@@ -80,75 +62,6 @@ MODEL_CATALOG: list[ModelEntry] = [
         provider="xfyun",
         service="llm.glm51.enterprise",
         description="Deepseek V4 Pro（1M 上下文），旗舰推理+编程，综合最强国模。",
-    ),
-    # ── DeepSeek 官方 API（api.deepseek.com）────────────────────────────────
-    # deepseek-v4-flash / deepseek-v4-pro 现由 Nebula 网关承载，见下方 llm.nebula。
-    # ── Nebula Gateway（OpenAI 兼容中转）───────────────────────────────────
-    ModelEntry(
-        id="gpt-5.5-pro",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.5 Pro via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4-pro",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 Pro via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.5",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.5 via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4-mini",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 Mini via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4-mini-2026-03-17",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 Mini (2026-03-17) via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4-nano",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 Nano via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="gpt-5.4-nano-2026-03-17",
-        provider="nebula",
-        service="llm.nebula",
-        description="GPT-5.4 Nano (2026-03-17) via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="claude-sonnet-4-6",
-        provider="nebula",
-        service="llm.nebula",
-        description="Claude Sonnet 4.6 via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="claude-opus-4-6",
-        provider="nebula",
-        service="llm.nebula",
-        description="Claude Opus 4.6 via Nebula gateway。",
-    ),
-    ModelEntry(
-        id="deepseek-v4-flash",
-        provider="nebula",
-        service="llm.nebula",
-        description="DeepSeek V4 Flash via Nebula gateway。",
     ),
     # ── MiniMax ───────────────────────────────────────────────────────────────
     ModelEntry(

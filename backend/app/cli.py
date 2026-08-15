@@ -34,6 +34,19 @@ def _resolve_master_password() -> str:
 
 
 @app_cli.command()
+def serve() -> None:
+    """Run the API on localhost via uvicorn (standalone OSS path; no PolarProcess)."""
+    import uvicorn
+
+    settings = Settings()
+    typer.echo(
+        f"Serving PrivPortal at http://{settings.api_host}:{settings.api_port} "
+        "(standalone — use `privportal start` only inside Polarisor)"
+    )
+    uvicorn.run("app.main:app", host=settings.api_host, port=settings.api_port)
+
+
+@app_cli.command()
 def start() -> None:
     """Request the PolarProcess-managed backend lifecycle start."""
     base_url = os.environ.get("POLARPROCESS_URL", "http://127.0.0.1:11055")

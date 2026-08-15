@@ -4,7 +4,7 @@
 
 PrivPortal 的 Web GUI 采用经典的**左侧边栏 + 顶栏 + 主内容区**布局：
 
-- **侧边栏 (Sidebar)** — 默认宽度 224px，可通过左上角汉堡按钮或 `Cmd+B`（macOS）/ `Ctrl+B`（Windows/Linux）快捷键折叠为 56px 图标模式。折叠/展开带有平滑动画过渡，折叠状态通过 `localStorage` 持久化。导航项按功能分组显示：Dashboard/Projects、Vault（Identity/Secret/Bindings）、Tools（Template/Export/Test Center）、System（Settings/Logs）
+- **侧边栏 (Sidebar)** — 默认宽度 224px，可通过左上角汉堡按钮或 `Cmd+B`（macOS）/ `Ctrl+B`（Windows/Linux）快捷键折叠为 56px 图标模式。折叠/展开带有平滑动画过渡，折叠状态通过 `localStorage` 持久化。导航项按功能分组显示：Dashboard/Projects、Vault（Secret/Bindings）、Tools（Template/Export/Test Center）、System（Settings/Logs）
 - **顶栏 (TopBar)** — 显示项目选择器、Vault 状态徽章（带锁/解锁图标）和解锁按钮
 - **主内容区** — 根据路由渲染对应页面
 - **命令面板 (Command Palette)** — 通过 `Cmd+K`（macOS）/ `Ctrl+K`（Windows/Linux）打开，支持关键字搜索快速导航到任意页面，支持箭头键选择和 Enter 确认
@@ -31,7 +31,7 @@ Set master password (设置主密码)
 Demo data (演示数据)
     │
     ├── [Import demo data] → POST /api/onboarding/import-demo
-    │    创建 Demo Project (3 个 Identity + 2 个 Secret + 2 个 Binding)
+    │    创建 Demo Project（Secret + Binding，不含已退役的文档 Identity）
     ├── [Skip] → 跳过演示数据
     │
     ▼
@@ -64,8 +64,7 @@ You're ready (完成)
 
 ### 功能
 
-1. **数据概览卡片** — 三列布局显示当前项目（或全局）的统计计数：
-   - Identity 数量
+1. **数据概览卡片** — 显示当前项目（或全局）的统计计数：
    - Secret 数量
    - Binding 数量
 
@@ -85,32 +84,15 @@ You're ready (完成)
 - **查看列表** — 分页显示所有项目（名称、描述、创建时间）
 - **创建项目** — 弹窗表单输入项目名称和描述
 - **编辑项目** — 修改名称和描述
-- **删除项目** — 级联删除关联的 Identity、Secret、Binding
+- **删除项目** — 级联删除关联的 Secret、Binding
 
 ### 项目切换
 
 顶栏的 **ProjectSelect** 组件允许切换当前活动项目。选择项目后，所有页面自动按 `project_id` 过滤数据。选择"Global"则显示不属于任何项目的数据。
 
-## Identity Vault（身份信息管理）
+## 文档 Identity Vault（已退役）
 
-路径: `/identities`
-
-### 操作
-
-- **查看列表** — 表格展示 Key（点号分隔）、Value（明文）、Category
-- **搜索** — 按 Key 或 Value 模糊搜索
-- **按类别筛选** — 按 Category 过滤
-- **添加 Identity** — 弹窗表单：
-  - Key（必填，必须包含 `.`，如 `identity.student.name`）
-  - Value（必填）
-  - Category（可选）
-  - 所属项目
-- **编辑 Identity** — 修改 Key、Value、Category、项目归属
-- **删除 Identity** — 确认后删除
-
-### 与 Secret 的区别
-
-Identity 是**非密钥的隐私信息**（姓名、邮箱等），**明文存储**，可在模板渲染和导出时回填。Secret 是**运行时密钥**（API Key），**加密存储**，不会在导出中回填。
+原 `/identities` 页与 `[[identity.*]]` 明文回填已正式退役。需要检测 PII 时使用无状态的 `/api/sanitize/scan|redact`。跨服务账号映射走 `/api/identity-bindings`，与已删除的文档 Identity 表不是同一条产品线。
 
 ## Secret Vault（密钥管理）
 
@@ -171,17 +153,17 @@ Binding 将一个**服务名称**（如 `llm.openai`）映射到一个 **Secret 
 1. 在文本区域输入包含 `[[placeholder]]` 的模板文本
 2. 点击"Render"按钮
 3. 后端调用 `POST /api/render` 进行替换：
-   - `[[identity.student.name]]` → `张三`（从 Identity 表查询）
    - `[[binding.llm.openai]]` → `[secret_ref:secret.openai.default]`（不解密）
+   - `[[identity.*]]` 不再回填明文（产品线已退役）
 4. 显示渲染结果、统计信息和警告
 
 ### 占位符语法
 
 | 格式                      | 替换行为                              |
 | ------------------------- | ------------------------------------- |
-| `[[identity.xxx.yyy]]`    | 替换为 Identity 明文值                |
 | `[[binding.service_name]]`| 替换为 `[secret_ref:...]` 标记        |
 | `[[secret_ref.xxx.yyy]]`  | 直接渲染为 `[secret_ref:...]`         |
+| `[[identity.*]]`          | 不回填；文档 Identity 线已退役        |
 
 ## Export（导出）
 
@@ -208,13 +190,11 @@ Binding 将一个**服务名称**（如 `llm.openai`）映射到一个 **Secret 
 
 路径: `/test-center`
 
-### 三种测试类型
+### 测试类型
 
-1. **Identity Render** — 取第一个 Identity，构造模板 `VERIFY_START [[key]] VERIFY_END` 并渲染，验证 Identity 值是否正确替换。
+1. **API Connectivity** — 调用内部渲染和导出路径，验证这两个 API 端点是否正常工作。
 
-2. **API Connectivity** — 调用内部渲染和导出路径，验证这两个 API 端点是否正常工作。
-
-3. **Binding Probe** — 遍历所有 Binding：
+2. **Binding Probe** — 遍历所有 Binding：
    - 查找关联的 Secret 和 `base_url`
    - 对 `base_url` 发送 HEAD/GET 请求
    - 报告每个 Binding 的连通性状态（pass/fail/skip）

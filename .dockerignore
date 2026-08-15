@@ -1,0 +1,8 @@
+.venv
+**/.venv
+node_modules
+**/node_modules
+*.db
+sync/vault-backup.json
+_design
+.git

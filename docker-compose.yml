@@ -1,0 +1,26 @@
+# OSS standalone path — for strangers cloning PolarPrivate_OpenSource.
+# Bind localhost only; SQLite persists in named volume.
+#
+# Polarisor ecosystem: do NOT `docker compose up` in this repo.
+# Use PolarProcess + `privportal start` (12790/12795 managed by PolarPort).
+
+services:
+  privportal:
+    build: .
+    ports:
+      - "127.0.0.1:12790:12790"
+    environment:
+      PRIVPORTAL_API_HOST: "127.0.0.1"
+      PRIVPORTAL_API_PORT: "12790"
+      PRIVPORTAL_DATABASE_URL: "sqlite:////app/data/privportal.db"
+    volumes:
+      - privportal-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:12790/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  privportal-data:

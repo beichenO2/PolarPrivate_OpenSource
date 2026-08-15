@@ -125,7 +125,7 @@ rm privportal.db
 privportal init-db
 ```
 
-所有已存储的 Secret 将丢失。Identity（明文数据）也会丢失。
+所有已存储的 Secret 将丢失。
 
 **预防**: 将 Master Password 安全记录在密码管理器中。
 
@@ -221,13 +221,13 @@ curl http://127.0.0.1:12790/proxy/llm.openai/v1/models?project_id=xxx
 
 ### API 数据类问题
 
-#### Q: 创建 Identity/Secret 时提示 "duplicate key"
+#### Q: 创建 Secret 时提示 "duplicate key"
 
-**症状**: HTTP 409 + `{"detail": "duplicate identity key", "code": "DUPLICATE_KEY"}`
+**症状**: HTTP 409 + `{"detail": "duplicate secret key", "code": "DUPLICATE_KEY"}`
 
 **原因**: 同一 `project_id` 下已存在相同 `key` 的记录。
 
-**解决**: 使用不同的 key，或先删除/编辑已有记录。
+**解决**: 使用不同的 key，或先删除/编辑已有记录。文档 Identity CRUD 已退役，不再提供 `/api/identities`。
 
 ---
 
@@ -235,10 +235,9 @@ curl http://127.0.0.1:12790/proxy/llm.openai/v1/models?project_id=xxx
 
 **症状**: `"key must use dot notation (contain at least one '.')"`
 
-**原因**: Identity、Secret、Binding 的 key 必须使用点号分隔的层级格式。
+**原因**: Secret、Binding 的 key 必须使用点号分隔的层级格式。
 
 **正确格式**:
-- `identity.student.name` (Identity)
 - `secret.openai.default` (Secret)
 - `service_name` (Binding 的 service_name 无此限制)
 - `secret.xxx.yyy` (Binding 的 secret_ref_key 需要点号)
@@ -350,8 +349,7 @@ privportal test -- -k test_security
 | 测试文件                          | 覆盖范围                             |
 | --------------------------------- | ------------------------------------ |
 | `test_vault*.py`                  | VaultService 加密/解密/密码更换/lock |
-| `test_api_secrets*.py`            | Secret CRUD / reveal / rotate / 去重 |
-| `test_api_identities*.py`         | Identity CRUD / 搜索 / 去重          |
+| `test_api_secrets*.py`            | Secret CRUD / rotate / 去重（reveal 已移除） |
 | `test_api_bindings*.py`           | Binding CRUD / resolved 状态         |
 | `test_api_projects*.py`           | Project CRUD / 级联删除              |
 | `test_api_proxy*.py`              | 代理转发 / 流式 / 错误处理 / 脱敏   |
@@ -410,7 +408,7 @@ cd backend
 privportal smoke
 ```
 
-冒烟测试使用临时数据库，覆盖完整的用户旅程：Vault → Project → Identity → Secret → Binding → Render → Export → Test Center → Logs → Settings → Password Change → 错误场景。
+冒烟测试使用临时数据库，覆盖完整的用户旅程：Vault → Project → Secret → Binding → Render → Export → Test Center → Logs → Settings → Password Change → 错误场景。
 
 ### 测试基础设施
 

@@ -34,7 +34,6 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from app.api.deps import get_db, require_unlocked_vault
 from app.core.config import Settings
-from app.core.rate_limiter import get_rate_limiter
 from app.db.models import Binding, LLMServiceStatus, ProxyUsage, Secret
 from app.logging_config import get_logger, sanitize_user_facing_string
 from app.services.models_dev_limits import input_token_threshold_for_model
@@ -43,7 +42,6 @@ from app.services.vault import VaultService
 router = APIRouter(tags=["proxy"])
 
 _LOG = get_logger(__name__)
-_rl = get_rate_limiter()
 
 _SKIP_REQUEST_HEADERS = frozenset({
     "host",
@@ -81,30 +79,6 @@ def _sse_media_type(upstream: httpx.Response) -> str:
     if "text/event-stream" in ct.lower():
         return ct.split(";")[0].strip()
     return "text/event-stream"
-
-
-def _release_on_stream_close(
-    resp: StreamingResponse,
-    service_name: str,
-    *,
-    client_id: str,
-) -> StreamingResponse:
-    """Keep the concurrency slot until the SSE body finishes (or aborts)."""
-    inner = resp.body_iterator
-
-    async def _wrapped() -> AsyncIterator[bytes]:
-        try:
-            async for chunk in inner:
-                yield chunk
-        finally:
-            _rl.release(service_name, client_id=client_id)
-
-    return StreamingResponse(
-        _wrapped(),
-        status_code=resp.status_code,
-        headers=dict(resp.headers),
-        media_type=resp.media_type,
-    )
 
 
 def _sanitize_upstream_body(body: bytes, plaintext: str) -> bytes:
@@ -846,11 +820,6 @@ async def proxy_request(
 
     for binding in fallback_chain:
         attempted_bindings.append(binding.service_name)
-        # Same connection-safety semaphore as /v1 (was missing → /proxy could
-        # open unbounded upstream sockets and exhaust httpx pool).
-        client_id = request.headers.get("x-client-id") or "proxy"
-        await _rl.acquire(binding.service_name, client_id=client_id)
-        slot_held = True
         try:
             resp, secret, plaintext = await _proxy_single_binding(ctx, binding)
             last_plaintext = plaintext
@@ -868,16 +837,6 @@ async def proxy_request(
                     service=binding.service_name,
                     attempted=attempted_bindings,
                 )
-                if isinstance(resp, StreamingResponse):
-                    resp = _release_on_stream_close(
-                        resp,
-                        binding.service_name,
-                        client_id=client_id,
-                    )
-                    slot_held = False
-                else:
-                    _rl.release(binding.service_name, client_id=client_id)
-                    slot_held = False
                 return resp
 
             # Check if error should trigger fallback
@@ -895,23 +854,9 @@ async def proxy_request(
                     next_fallback=len(attempted_bindings) < len(fallback_chain),
                 )
                 last_error_response = resp
-                _rl.release(
-                    binding.service_name,
-                    client_id=client_id,
-                    is_error=True,
-                    is_429=(resp.status_code == 429),
-                )
-                slot_held = False
                 continue
             else:
                 # Non-retriable error (400, 401, 403, etc.) - return immediately
-                _rl.release(
-                    binding.service_name,
-                    client_id=client_id,
-                    is_error=True,
-                    is_429=(resp.status_code == 429),
-                )
-                slot_held = False
                 return resp
 
         except HTTPException:
@@ -939,13 +884,6 @@ async def proxy_request(
                 },
             )
             continue
-        finally:
-            if slot_held:
-                _rl.release(
-                    binding.service_name,
-                    client_id=client_id,
-                    is_error=True,
-                )
 
     # All fallbacks exhausted
     _LOG.error(

@@ -94,7 +94,7 @@ class TestFullJourney:
         assert r.json().get("value", "") != "sk-smoke-secret-val"  # gitleaks:allow (synthetic test fixture)
 
         # --- 7. Rotate secret ---
-        r = c.post(f"/api/secrets/{sec_id}/rotate", json={"value": "sk-smoke-rotated"})
+        r = c.post(f"/api/secrets/{sec_id}/rotate", json={"value": "sk-smoke-rotated"})  # gitleaks:allow (synthetic test fixture)
         assert r.status_code == 200
         assert r.json()["rotated_at"] is not None
 

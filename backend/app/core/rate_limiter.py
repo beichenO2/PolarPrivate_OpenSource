@@ -34,33 +34,13 @@ class ServiceLimitConfig:
     burst: int = 0  # Phase 3: extra burst tokens above rpm
 
 
-# Defaults & per-service caps are *connection-safety* ceilings for the shared
-# httpx pool (see app.main._UPSTREAM_LIMITS), NOT copies of vendor marketing
-# quotas. rpm is display/compat only — acquire() no longer RPM-throttles.
-#
-# Recalibrated 2026-08-12 (AKM Flash bench + live dashboard audit):
-#   - Official DeepSeek Flash account concurrency = 2500, but local
-#     /proxy without a semaphore + httpx max_connections=20 died at ~16
-#     (504 / ConnectionReset). Safe sustained: 8/8; recommend ≤12.
-#   - llm.lant previously fell through to default=3, choking 5-arm suites.
-#   - dashscope 50 alone exceeded the old pool of 20 — lowered.
-# Rule of thumb: max(service) ≲ max_connections/3; sum of "hot" services
-# should stay under max_connections with headroom for other Polar apps.
-_DEFAULT_LIMITS = ServiceLimitConfig(max_concurrent=5, rpm=60)
+_DEFAULT_LIMITS = ServiceLimitConfig(max_concurrent=3, rpm=20)
 
 _SERVICE_LIMITS: dict[str, ServiceLimitConfig] = {
-    # glm51: historical pressure ~12–15; keep 10 (docs/pressure-test-20260610)
     "llm.glm51.enterprise": ServiceLimitConfig(max_concurrent=10, rpm=60),
-    # codingplan: 429-prone; keep conservative
     "llm.aliyun.codingplan": ServiceLimitConfig(max_concurrent=8, rpm=60),
-    # vision batch needs room, but must fit shared pool
-    "llm.aliyun.dashscope":  ServiceLimitConfig(max_concurrent=24, rpm=600),
-    # minimax: pressure-test min stable ≈12; leave 2 slots margin
-    "llm.minimax":           ServiceLimitConfig(max_concurrent=10, rpm=60),
-    # official DeepSeek (api.deepseek.com): vendor 2500; local safety raised with pool=128
-    "llm.deepseek":          ServiceLimitConfig(max_concurrent=20, rpm=600),
-    # lant.top relay — AKM five-arm primary; allow suite jobs=5 with headroom
-    "llm.lant":              ServiceLimitConfig(max_concurrent=16, rpm=180),
+    "llm.aliyun.dashscope":  ServiceLimitConfig(max_concurrent=50, rpm=600),
+    "llm.minimax":           ServiceLimitConfig(max_concurrent=12, rpm=60),
 }
 
 _ENV_PREFIX = "PRIVPORTAL_RL_"

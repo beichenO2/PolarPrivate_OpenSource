@@ -6,15 +6,11 @@
 
 ---
 
-## Agent 接入（Skill）
+## Agent 接入
 
-Cursor / Codex Agent 请使用本仓库 Skill（已可 symlink 到 `~/.cursor/skills/polarprivate`）：
+独立使用者把 QCSA 能力码发给 `http://127.0.0.1:12790/v1`，不要把 API Key 放进 Agent 工作区。用法见 [`docs/usage.md`](docs/usage.md)。
 
-- Skill：`.cursor/skills/polarprivate/SKILL.md`
-- 手册：[`docs/agent-playbook.md`](docs/agent-playbook.md)
-- 开槽流程：Skill → `references/slot-provisioning.md`（先 API 建占位 Secret + Binding，再用 `【用户必做·已开槽】` 请用户粘贴 Key）
-
-明文 Key 不得进入 Agent 工作区；LLM 优先走 `http://127.0.0.1:12790/v1` + QCSA 能力码。
+Polarisor 生态内另有本机 Skill（不随公开仓发布）。
 
 ## 安装
 
@@ -26,23 +22,35 @@ cd Polarisor
 ./install.sh infra    # 安装 PolarPrivate 及 SOTAgent / PolarPort 等配套
 ```
 
-### 独立安装
+生态内启动后端请用 **`privportal start`**（经 PolarProcess 管理生命周期）；该命令在独立环境**不可用**。
+
+### 独立安装（公开仓 · 开箱即用）
 
 ```bash
-git clone https://github.com/beichenO2/PolarPrivate.git
-cd PolarPrivate
+git clone https://github.com/beichenO2/PolarPrivate_OpenSource.git
+cd PolarPrivate_OpenSource
 
-# 后端
-cd backend && uv sync && privportal init-db
+# 方式 A（推荐）：Docker Compose — 单端口 API + Web UI
+docker compose up --build
+# → http://127.0.0.1:12790
 
-# 前端（新终端）
-cd frontend && npm install
+# 方式 B：本地 uv（不依赖 PolarProcess）
+cd backend && uv sync && privportal init-db && privportal serve
+# → http://127.0.0.1:12790（若存在 frontend/dist 则同端口托管 UI）
 ```
 
-| 服务 | 地址 | 说明 |
+可选 demo 数据（明显假口令，勿用于生产）：
+
+```bash
+PRIVPORTAL_MASTER_PASSWORD=demo-only-not-a-secret privportal import-demo
+```
+
+威胁模型见根目录 [`SECURITY.md`](SECURITY.md)。
+
+| 路径 | 地址 | 说明 |
 |------|------|------|
-| 后端 API + 代理 | `http://127.0.0.1:12790` | FastAPI，仅监听 localhost |
-| 前端 Web UI | `http://localhost:12795` | Vite dev server |
+| Docker / `privportal serve` | `http://127.0.0.1:12790` | API + 代理 + 内置 Web UI（同端口） |
+| 生态内 Vite dev | `http://localhost:12795` | 仅 Polarisor 开发态；生产由 PolarProcess 管 12790 |
 
 ---
 
@@ -113,8 +121,7 @@ PolarPrivate/
 ├── sdk/                            # Python SDK
 ├── sdk-ts/                         # TypeScript SDK
 ├── docs/                           # architecture / security-model / api-reference
-├── capabilities.json               # SOTAgent 能力发现声明
-├── polaris.json                    # Polarisor 生态 SSOT
+├── capabilities.json               # 能力发现声明
 ```
 
 **请求路径（LLM 调用）**
@@ -137,18 +144,28 @@ Agent 收到结果 — 全程未接触 API Key
 
 ## 快速开始
 
+### 独立用户（≤5 步）
+
+1. `git clone https://github.com/beichenO2/PolarPrivate_OpenSource.git && cd PolarPrivate_OpenSource`
+2. `docker compose up --build`
+3. 浏览器打开 `http://127.0.0.1:12790`
+4. 按 Onboarding 设置 **Master Password**
+5. （可选）`PRIVPORTAL_MASTER_PASSWORD=demo-only-not-a-secret` 下在容器内或本地执行 `privportal import-demo`
+
+不用 Docker 时：`cd backend && uv sync && privportal init-db && privportal serve`（**不要**使用 `privportal start`）。
+
+### Polarisor 生态内
+
 ```bash
-# 1. 启动后端
 cd backend
 privportal init-db      # 首次
-privportal start        # → http://127.0.0.1:12790
+privportal start        # 经 PolarProcess → http://127.0.0.1:12790
 
-# 2. 启动前端
 cd frontend
 npm run dev             # → http://localhost:12795
 ```
 
-浏览器打开 `http://localhost:12795`，按 Onboarding 向导设置 **Master Password**，在 Secrets 页录入 API Key，在 Bindings 页创建 `llm.*` 绑定。
+浏览器打开 Web UI，在 Secrets 页录入 API Key，在 Bindings 页创建 `llm.*` 绑定。
 
 **OpenAI 兼容调用**（任意 SDK 均可，`api_key` 被忽略）：
 
@@ -184,7 +201,7 @@ curl -X POST http://127.0.0.1:12790/v1/chat/completions \
 | [PolarCopilot](https://github.com/beichenO2/PolarCopilot) | Agent 默认经 PolarPrivate 路由 LLM | 生态内推荐 |
 | [KnowLever](https://github.com/beichenO2/KnowLever) | 超长 Prompt 自动压缩（>120K tokens） | 可选 |
 
-**被依赖方**（来自 `polaris.json`）：PolarCopilot、KnowLever、PolarClaw、digist、tqsdk 等。
+**被依赖方**（生态内）：PolarCopilot、KnowLever、PolarClaw、digist、tqsdk 等。
 
 ---
 
