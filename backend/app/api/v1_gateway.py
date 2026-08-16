@@ -55,6 +55,7 @@ from app.core.local_model_routing import (
     ollama_base_url,
     resolve_ollama_chat_model,
 )
+from app.core.host_resolve import ensure_resolvable_base_url
 from app.core.model_routing import (
     caller_facing_model,
     get_capability_fallback,
@@ -76,8 +77,45 @@ _rl = get_rate_limiter()
 # Max seconds to honour a single upstream Retry-After before retrying anyway,
 # so one request can't hang indefinitely on a misbehaving upstream hint.
 _RL_RETRY_WAIT_CAP = 30.0
-# Backoff schedule for pre-stream transient upstream errors (429/5xx).
+# Upstream 429: hold the caller here. Unlimited retries, fixed interval.
+# Do not pass 429 back to AKM / other clients.
+_UPSTREAM_429_HOLD_S = 15.0
+# Backoff schedule for pre-stream transient upstream errors (5xx only).
 _STREAM_RETRY_DELAYS = [1.0, 3.0, 7.0]
+
+
+async def _hold_until_not_429(
+    request_once,
+    first_resp: httpx.Response,
+    *,
+    service_name: str,
+    log_event: str = "v1_gateway_wait_retry",
+) -> httpx.Response:
+    """Retry forever on upstream 429. Interval 15s. Never return a 429."""
+    resp = first_resp
+    attempt = 0
+    while resp.status_code == 429:
+        attempt += 1
+        _LOG.warning(
+            log_event,
+            service=service_name,
+            status=429,
+            attempt=attempt,
+            delay_s=_UPSTREAM_429_HOLD_S,
+        )
+        await asyncio.sleep(_UPSTREAM_429_HOLD_S)
+        try:
+            resp = await request_once()
+        except httpx.RequestError:
+            _LOG.warning(
+                log_event,
+                service=service_name,
+                status="request_error",
+                attempt=attempt,
+                delay_s=_UPSTREAM_429_HOLD_S,
+            )
+            resp = first_resp
+    return resp
 
 # ── Rate-limit monitor ───────────────────────────────────────────────────────
 
@@ -96,10 +134,18 @@ def _build_service_model_map() -> dict[str, list[str]]:
     Computed from MODEL_SERVICE_MAP + CAPABILITY_CLOUD_MAP so the dashboard
     shows which models share each key's concurrency/RPM budget.
     """
-    from app.core.model_routing import MODEL_SERVICE_MAP, CAPABILITY_CLOUD_MAP
+    from app.core.model_routing import (
+        CAPABILITY_CLOUD_MAP,
+        MODEL_SERVICE_MAP,
+        NEBULA_CALLER_ROUTES,
+    )
     svc_models: dict[str, list[str]] = {}
     for model_id, svc in MODEL_SERVICE_MAP.items():
         svc_models.setdefault(svc, []).append(model_id)
+    for caller_id, (_upstream, svc) in NEBULA_CALLER_ROUTES.items():
+        svc_models.setdefault(svc, [])
+        if caller_id not in svc_models[svc]:
+            svc_models[svc].append(caller_id)
     for code, (model_id, svc) in CAPABILITY_CLOUD_MAP.items():
         label = f"{code}→{model_id}"
         svc_models.setdefault(svc, [])
@@ -113,6 +159,8 @@ _SERVICE_DISPLAY_NAMES: dict[str, str] = {
     "llm.aliyun.codingplan": "阿里云 CodingPlan",
     "llm.aliyun.dashscope": "阿里云 DashScope",
     "llm.minimax": "MiniMax",
+    "llm.nebula": "实验室AKM / Nebula",
+    "llm.lant": "lant.top relay",
 }
 
 
@@ -308,6 +356,7 @@ async def unified_embeddings(
             "detail": f"No base_url configured for binding '{service_name}'.",
             "code": "MISSING_BASE_URL",
         })
+    raw_base = ensure_resolvable_base_url(raw_base)
 
     plaintext = vault.decrypt_secret_value(secret.value)
     auth_extra = _outgoing_auth_header(binding, plaintext)
@@ -575,6 +624,7 @@ async def unified_chat_completions(
             "detail": f"No base_url configured for binding '{service_name}'.",
             "code": "MISSING_BASE_URL",
         })
+    raw_base = ensure_resolvable_base_url(raw_base)
 
     plaintext = vault.decrypt_secret_value(secret.value)
     auth_extra = _outgoing_auth_header(binding, plaintext)
@@ -687,41 +737,61 @@ async def unified_chat_completions(
         _update_service_status(session, service_name, is_error=is_error, error_message=None if not is_error else f"HTTP {resp.status_code}")
 
         if is_error:
-            # Wait-and-retry transient upstream failures on the SAME service.
-            # 429 (upstream rate limit) is intentionally included: when upstream
-            # signals a limit we WAIT (honouring Retry-After) and retry — the
-            # rate-limit error is never passed back to the caller.
-            if resp.status_code in (429, 500, 502, 503, 504):
+            async def _same_upstream() -> httpx.Response:
+                return await client.request(
+                    "POST",
+                    upstream_url,
+                    headers=forward_headers,
+                    content=body,
+                    timeout=_NON_STREAM_TIMEOUT,
+                )
+
+            def _ok_response(ok_resp: httpx.Response) -> Response:
+                _record_usage(session, service_name, None, is_error=False)
+                _update_service_status(session, service_name, is_error=False)
+                ok_body = ok_resp.content
+                if opaque_response:
+                    ok_body = _rewrite_response_model(ok_body, caller_model)
+                _release_budget()
+                return Response(
+                    content=ok_body,
+                    status_code=ok_resp.status_code,
+                    headers=_filter_response_headers(ok_resp.headers),
+                )
+
+            # 429 stays in PolarPrivate: unlimited 15s retries, never returned.
+            if resp.status_code == 429:
+                _release_budget(is_429=True)
+                resp = await _hold_until_not_429(
+                    _same_upstream,
+                    resp,
+                    service_name=service_name,
+                )
+                if resp.status_code < 400:
+                    return _ok_response(resp)
+
+            # Wait-and-retry transient 5xx on the SAME service (capped).
+            if resp.status_code in (500, 502, 503, 504):
                 _RETRY_DELAYS = [1.0, 3.0, 7.0, 15.0]
                 for attempt, base_delay in enumerate(_RETRY_DELAYS, 1):
-                    if resp.status_code == 429:
-                        ra = parse_retry_after(resp.headers)
-                        delay = min(float(ra), _RL_RETRY_WAIT_CAP) if ra else base_delay
-                    else:
-                        delay = base_delay
-                    _LOG.warning("v1_gateway_wait_retry", service=service_name, status=resp.status_code, attempt=attempt, delay_s=delay)
-                    await asyncio.sleep(delay)
+                    _LOG.warning("v1_gateway_wait_retry", service=service_name, status=resp.status_code, attempt=attempt, delay_s=base_delay)
+                    await asyncio.sleep(base_delay)
                     try:
-                        retry_resp = await client.request(
-                            "POST", upstream_url,
-                            headers=forward_headers,
-                            content=body,
-                            timeout=_NON_STREAM_TIMEOUT,
-                        )
+                        retry_resp = await _same_upstream()
                         if retry_resp.status_code < 400:
-                            _record_usage(session, service_name, None, is_error=False)
-                            _update_service_status(session, service_name, is_error=False)
-                            retry_body = retry_resp.content
-                            if opaque_response:
-                                retry_body = _rewrite_response_model(retry_body, caller_model)
-                            _release_budget()
-                            return Response(
-                                content=retry_body,
-                                status_code=retry_resp.status_code,
-                                headers=_filter_response_headers(retry_resp.headers),
-                            )
+                            return _ok_response(retry_resp)
                         resp = retry_resp
-                        if resp.status_code not in (429, 500, 502, 503, 504):
+                        if resp.status_code == 429:
+                            _release_budget(is_429=True)
+                            resp = await _hold_until_not_429(
+                                _same_upstream,
+                                resp,
+                                service_name=service_name,
+                            )
+                            if resp.status_code < 400:
+                                return _ok_response(resp)
+                            continue
+                        if resp.status_code not in (500, 502, 503, 504):
                             break
                     except httpx.RequestError:
                         if attempt == len(_RETRY_DELAYS):
@@ -790,6 +860,14 @@ async def unified_chat_completions(
                         ra = parse_retry_after(fb_resp.headers)
                         _rl.get_budget(fb_service).set_cooldown(min(float(ra), _RL_RETRY_WAIT_CAP) if ra else 5.0)
 
+            if resp.status_code == 429:
+                resp = await _hold_until_not_429(
+                    _same_upstream,
+                    resp,
+                    service_name=service_name,
+                )
+                if resp.status_code < 400:
+                    return _ok_response(resp)
             return _wrap_upstream_error(resp.status_code, resp.content, plaintext, service_name,
                                         upstream_headers=resp.headers)
 
@@ -906,29 +984,54 @@ async def _forward_v1_streaming_rl(
             "service": service_name,
         })
 
-    # Pre-stream transient errors (429/5xx) → wait & retry before streaming.
-    # Safe: no bytes forwarded yet. An upstream rate limit becomes a retry here,
-    # mirroring the non-stream path, so it never reaches the caller as an error.
-    retry_attempt = 0
-    while upstream.status_code in (429, 500, 502, 503, 504) and retry_attempt < len(_STREAM_RETRY_DELAYS):
-        status_code = upstream.status_code
-        ra = parse_retry_after(upstream.headers) if status_code == 429 else None
+    # Pre-stream transient errors. 429 holds here forever (15s). 5xx is capped.
+    # Safe: no bytes forwarded yet.
+    async def _stream_once() -> httpx.Response:
+        req = client.build_request(
+            "POST",
+            upstream_url,
+            headers=forward_headers,
+            content=body,
+            timeout=_STREAM_TIMEOUT,
+        )
+        return await client.send(req, stream=True)
+
+    if upstream.status_code == 429:
         try:
             await upstream.aread()
         finally:
             await upstream.aclose()
-        delay = min(float(ra), _RL_RETRY_WAIT_CAP) if (status_code == 429 and ra) else _STREAM_RETRY_DELAYS[retry_attempt]
+        attempt = 0
+        while True:
+            attempt += 1
+            _LOG.warning(
+                "v1_gateway_stream_wait_retry",
+                service=service_name,
+                status=429,
+                attempt=attempt,
+                delay_s=_UPSTREAM_429_HOLD_S,
+            )
+            await asyncio.sleep(_UPSTREAM_429_HOLD_S)
+            try:
+                upstream = await _stream_once()
+            except (httpx.TimeoutException, httpx.RequestError):
+                continue
+            if upstream.status_code != 429:
+                break
+
+    retry_attempt = 0
+    while upstream.status_code in (500, 502, 503, 504) and retry_attempt < len(_STREAM_RETRY_DELAYS):
+        status_code = upstream.status_code
+        try:
+            await upstream.aread()
+        finally:
+            await upstream.aclose()
+        delay = _STREAM_RETRY_DELAYS[retry_attempt]
         retry_attempt += 1
         _LOG.warning("v1_gateway_stream_wait_retry", service=service_name, status=status_code, attempt=retry_attempt, delay_s=delay)
         await asyncio.sleep(delay)
         try:
-            req = client.build_request(
-                "POST", upstream_url,
-                headers=forward_headers,
-                content=body,
-                timeout=_STREAM_TIMEOUT,
-            )
-            upstream = await client.send(req, stream=True)
+            upstream = await _stream_once()
         except (httpx.TimeoutException, httpx.RequestError) as exc:
             if release_fn:
                 release_fn(is_error=True)
@@ -937,6 +1040,28 @@ async def _forward_v1_streaming_rl(
                 "error": str(exc),
                 "service": service_name,
             })
+        if upstream.status_code == 429:
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    await upstream.aread()
+                finally:
+                    await upstream.aclose()
+                _LOG.warning(
+                    "v1_gateway_stream_wait_retry",
+                    service=service_name,
+                    status=429,
+                    attempt=attempt,
+                    delay_s=_UPSTREAM_429_HOLD_S,
+                )
+                await asyncio.sleep(_UPSTREAM_429_HOLD_S)
+                try:
+                    upstream = await _stream_once()
+                except (httpx.TimeoutException, httpx.RequestError):
+                    continue
+                if upstream.status_code != 429:
+                    break
 
     if upstream.status_code >= 400:
         try:

@@ -34,6 +34,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from app.api.deps import get_db, require_unlocked_vault
 from app.core.config import Settings
+from app.core.host_resolve import ensure_resolvable_base_url
 from app.db.models import Binding, LLMServiceStatus, ProxyUsage, Secret
 from app.logging_config import get_logger, sanitize_user_facing_string
 from app.services.models_dev_limits import input_token_threshold_for_model
@@ -627,6 +628,7 @@ async def _proxy_single_binding(
                 "code": "VALIDATION_ERROR",
             },
         )
+    raw_base = ensure_resolvable_base_url(raw_base)
 
     base = raw_base.rstrip("/")
     upstream_path = f"{base}/{ctx.path}" if ctx.path else base

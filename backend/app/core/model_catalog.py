@@ -76,6 +76,49 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.minimax",
         description="MiniMax M3 + thinking=adaptive，深度推理模式。",
     ),
+    # ── 实验室AKM / Nebula（/v1 调用名一律 nebula-*）────────────────────
+    ModelEntry(
+        id="nebula-opus-4-6",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · Claude Opus 4.6（上游 claude-opus-4-6）。",
+    ),
+    ModelEntry(
+        id="nebula-sonnet-4-6",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · Claude Sonnet 4.6（上游 claude-sonnet-4-6）。",
+    ),
+    ModelEntry(
+        id="nebula-gpt-5.4",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · GPT-5.4（上游 gpt-5.4）。",
+    ),
+    ModelEntry(
+        id="nebula-gpt-5.4-mini",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · GPT-5.4 Mini（上游 gpt-5.4-mini）。",
+    ),
+    ModelEntry(
+        id="nebula-gpt-5.4-nano",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · GPT-5.4 Nano（上游 gpt-5.4-nano）。",
+    ),
+    ModelEntry(
+        id="nebula-ds-v4-flash",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · DeepSeek V4 Flash（勿与 xfyun ds-v4-flash / xop* 混淆）。",
+    ),
+    ModelEntry(
+        id="nebula-ds-v4-pro",
+        provider="nebula",
+        service="llm.nebula",
+        description="Nebula 渠道 · DeepSeek V4 Pro（勿与 lant_ds_v4_pro / llm.lant 混淆）。",
+    ),
     # ── Aliyun / DashScope ───────────────────────────────────────────────────
     ModelEntry(
         id="qwen3.7-plus",

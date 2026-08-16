@@ -74,9 +74,12 @@ STRICT_MODEL_MAP = {
     "deepseek-v4-flash": "xopdeepseekv4flash",
     "ds-v4-flash": "xopdeepseekv4flash",
     "xopdeepseekv4flash": "xopdeepseekv4flash",
-    "deepseek-v4-pro": "xopdeepseekv4pro",
+    # xfyun 线：ds-v4-pro / xopdeepseekv4pro
     "ds-v4-pro": "xopdeepseekv4pro",
     "xopdeepseekv4pro": "xopdeepseekv4pro",
+    # AKM formal pin: lant_ds_v4_pro → lant.top relay（勿与 xfyun xopdeepseekv4pro 混淆）
+    "deepseek-v4-pro": "deepseek-v4-pro",
+    "lant_ds_v4_pro": "deepseek-v4-pro",
     # ── 阿里云 codingPlan ──
     "qwen-plus": "qwen3.7-plus",
     "qwen3.5-plus": "qwen3.7-plus",
@@ -105,6 +108,8 @@ MODEL_SERVICE_MAP = {
     "xopkimik26": "llm.glm51.enterprise",
     "xopdeepseekv4flash": "llm.glm51.enterprise",
     "xopdeepseekv4pro": "llm.glm51.enterprise",
+    # lant.top relay（https://lant.top/relay-api/v1）— AKM suite pin
+    "deepseek-v4-pro": "llm.lant",
     # 阿里云 codingPlan
     "qwen3.7-plus": "llm.aliyun.codingplan",
     # 阿里云 DashScope VL 系列
@@ -210,6 +215,20 @@ def select_service_by_weight(
     return candidates[-1]["service"], candidates[-1].get("model")
 
 
+# Caller-only aliases for 实验室AKM / Nebula. Keys are /v1 model ids (must
+# start with nebula-); values are the upstream id sent to llm.nebula.
+# Keep these out of MODEL_SERVICE_MAP so they do not steal lant / xfyun names.
+NEBULA_CALLER_ROUTES: dict[str, tuple[str, str]] = {
+    "nebula-opus-4-6": ("claude-opus-4-6", "llm.nebula"),
+    "nebula-sonnet-4-6": ("claude-sonnet-4-6", "llm.nebula"),
+    "nebula-gpt-5.4": ("gpt-5.4", "llm.nebula"),
+    "nebula-gpt-5.4-mini": ("gpt-5.4-mini", "llm.nebula"),
+    "nebula-gpt-5.4-nano": ("gpt-5.4-nano", "llm.nebula"),
+    "nebula-ds-v4-flash": ("deepseek-v4-flash", "llm.nebula"),
+    "nebula-ds-v4-pro": ("deepseek-v4-pro", "llm.nebula"),
+}
+
+
 def resolve_model_and_service(model: str) -> tuple[str, str] | tuple[None, None]:
     """Return (resolved_id, service_name).
 
@@ -220,6 +239,10 @@ def resolve_model_and_service(model: str) -> tuple[str, str] | tuple[None, None]
     raw = (model or "").strip()
     if not raw:
         return None, None
+
+    nebula_route = NEBULA_CALLER_ROUTES.get(raw.lower())
+    if nebula_route:
+        return nebula_route
 
     l_code = normalize_l_code(raw)
     if l_code:
@@ -252,6 +275,8 @@ def is_opaque_caller_model(model: str) -> bool:
     raw = (model or "").strip()
     if is_local_chat_code(raw):
         return True
+    if raw.lower().startswith("nebula-"):
+        return True
     if raw.upper().startswith("V") and len(raw) == 5:
         return True
     if len(raw) == 4 and all(c in "01" for c in raw):
@@ -281,6 +306,7 @@ def get_all_registered_services() -> list[str]:
     Used by test_center.py to query LLM service status for all registered services.
     """
     services = list(set(MODEL_SERVICE_MAP.values()))
+    services.extend(svc for _, svc in NEBULA_CALLER_ROUTES.values() if svc not in services)
     if LOCAL_SERVICE_NAME not in services:
         services.append(LOCAL_SERVICE_NAME)
     return services
