@@ -36,6 +36,39 @@
       "timeout_ms": 10000
     },
     {
+      "id": "polarprivate.llm.images",
+      "service_name": "polarprivate",
+      "description": "生图网关；使用 I000 能力码路由到 MiniMax image-01",
+      "transport": "http",
+      "endpoint": "/v1/images/generations",
+      "method": "POST",
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 300000
+    },
+    {
+      "id": "polarprivate.llm.audio",
+      "service_name": "polarprivate",
+      "description": "生音频 / TTS 网关；使用 A000 能力码路由到 MiniMax speech-2.8-turbo",
+      "transport": "http",
+      "endpoint": "/v1/audio/speech",
+      "method": "POST",
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 300000
+    },
+    {
+      "id": "polarprivate.llm.videos",
+      "service_name": "polarprivate",
+      "description": "生视频网关；使用 D000 能力码路由到 MiniMax-Hailuo-2.3，GET 同路径查任务",
+      "transport": "http",
+      "endpoint": "/v1/videos/generations",
+      "method": "POST",
+      "idempotent": false,
+      "side_effects": false,
+      "timeout_ms": 300000
+    },
+    {
       "id": "polarprivate.proxy",
       "service_name": "polarprivate",
       "description": "反向代理到已绑定的上游服务（LLM API 等），自动注入密钥",

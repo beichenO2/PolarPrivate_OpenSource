@@ -23,9 +23,9 @@ PP_BASE = f"http://127.0.0.1:{PP_PORT}"
 ENDPOINT = f"{PP_BASE}/v1/chat/completions"
 
 SERVICE_MODEL_MAP = {
-    "llm.glm51.enterprise": "0000",
-    "llm.aliyun.codingplan": "V0000",
     "llm.minimax": "0110",
+    "llm.aliyun.dashscope": "qwen3-vl-flash",
+    "llm.lant": "0100",
 }
 
 COOLDOWN_MINUTES = 15

@@ -9,8 +9,8 @@ Usage (any OpenAI-compatible SDK):
         base_url="http://127.0.0.1:12790/v1",
         api_key="local",   # ignored — PolarPrivate handles auth
     )
-    client.chat.completions.create(model="0001", ...)  # → DS V4 Flash (agent)
-    client.chat.completions.create(model="V0000", ...)  # → qwen3.7-plus (vision)
+    client.chat.completions.create(model="0001", ...)  # → MiniMax-M3 (agent)
+    client.chat.completions.create(model="V0010", ...)  # → MiniMax-M3 (vision)
 
 The /proxy/* routes are untouched and remain fully functional.
 """
@@ -155,12 +155,11 @@ def _build_service_model_map() -> dict[str, list[str]]:
 
 
 _SERVICE_DISPLAY_NAMES: dict[str, str] = {
-    "llm.glm51.enterprise": "讯飞星火 MaaS 企业版",
-    "llm.aliyun.codingplan": "阿里云 CodingPlan",
     "llm.aliyun.dashscope": "阿里云 DashScope",
     "llm.minimax": "MiniMax",
     "llm.nebula": "实验室AKM / Nebula",
     "llm.lant": "lant.top relay",
+    "llm.glm2": "GLM-5.2 独立线",
 }
 
 
@@ -247,7 +246,7 @@ def list_models(
     now = int(time.time())
     data = []
     for entry in MODEL_CATALOG:
-        if entry.service != LOCAL_SERVICE_NAME and entry.service not in resolved_services:
+        if entry.service not in resolved_services:
             continue
         data.append({
             "id": entry.id,
@@ -470,23 +469,7 @@ async def _forward_local_ollama(
     )
 
 
-_DASHSCOPE_SERVICES = frozenset({"llm.aliyun.codingplan", "llm.aliyun.dashscope"})
-
-# 讯飞/glm51 endpoint quirk: it returns an EMPTY 200 response (no content, no
-# tool_calls) once a conversation carries tool-call / tool-result messages, which
-# stalls multi-round agent loops. Requests that contain such messages are routed
-# to a tool-reliable provider instead.
-_TOOL_CONVO_REROUTE = ("qwen3.7-plus", "llm.aliyun.codingplan")
-
-
-def _request_has_tool_messages(obj: dict) -> bool:
-    """True if the chat payload contains tool-call or tool-result messages."""
-    for m in obj.get("messages") or []:
-        if not isinstance(m, dict):
-            continue
-        if m.get("role") == "tool" or m.get("tool_calls"):
-            return True
-    return False
+_DASHSCOPE_SERVICES = frozenset({"llm.aliyun.dashscope"})
 
 
 def _apply_dashscope_tool_choice_fix(obj: dict, service_name: str) -> None:
@@ -540,15 +523,16 @@ async def unified_chat_completions(
     full_model, service_name = resolve_model_and_service(caller_model)
     if service_name is None:
         raise HTTPException(status_code=422, detail={
-            "detail": "Use 4-bit QCSA codes (0000–1111), V-prefix vision (V0000/V0010/V1000/V0001/V0101), L0000 local, or E000 embed.",
+            "detail": "Use 4-bit QCSA codes (0000/0001/0110/1110/…), vision V0000/V0010/V1000/V0001/V0101, or E000 embed.",
             "code": "UNKNOWN_MODEL",
             "hint": (
                 "QCSA: Q=Quality C=Context S=Speed A=Agentic. "
-                "0000=GLM-5.1(均衡) 0010=DS-V4-Flash(快速) 0100=DS-V4-Pro(长文本1M) 0110=MiniMax-M3 1000=GLM-5.1(旗舰) 1100=Qwen3.7-Plus(旗舰+长上下文) 1110=M3-Thinking(推理). "
-                "Agent: 0001=DS-V4-Flash(tool call最准) 0011=DS-V4-Flash 0101=DS-V4-Pro(长上下文Agent) 1001=DS-V4-Pro(复杂多步). "
-                "Vision: V0000=qwen3.7(默认,效果最好,44页可处理) V0010=vl-flash(批量,44页30s最快) "
-                "V1000=Kimi-K2.6(单图旗舰,限3-4张) V0001=K2.6(单图Agent+tool) "
-                "V0101=qwen3.7(多图Agent,C=1长上下文,44页可处理+tool call)."
+                "0000/0010/0110/1000=MiniMax-M3  0100=lant deepseek-v4-pro  "
+                "1110=MiniMax-M3-Thinking  0001/0011=MiniMax-M3 (agent)  "
+                "0101/1001=lant deepseek-v4-pro (agent). "
+                "Vision: V0000/V0010/V0001/V0101=MiniMax-M3  V1000=MiniMax-M3-Thinking. "
+                "Embeddings: E000. "
+                "Retired: xfyun/xop*, 1100/qwen3.7-plus, L0000."
             ),
         })
 
@@ -577,19 +561,6 @@ async def unified_chat_completions(
         _LOG.info("load_balance_selected", model=full_model, service=service_name,
                    skipped_cooldown=list(cooled) if cooled else None)
 
-    # Compatibility reroute: glm51/讯飞 returns EMPTY on multi-turn tool
-    # conversations → send tool-carrying requests to a tool-reliable provider.
-    # (Round 0 has no tool messages yet, so the initial tool-call decision can
-    # still use the originally routed model; only follow-up rounds reroute.)
-    # Diagnostic escape hatch: header `x-pp-no-reroute: 1` disables this, so the
-    # raw upstream behaviour can be reproduced/tested directly.
-    _no_reroute = request.headers.get("x-pp-no-reroute") == "1"
-    if not _no_reroute and service_name == "llm.glm51.enterprise" and _request_has_tool_messages(obj):
-        full_model, service_name = _TOOL_CONVO_REROUTE
-        _LOG.info("tool_convo_reroute", reason="glm51_empty_on_tool_messages",
-                  to_service=service_name, to_model=full_model)
-
-    # Overwrite the model field in the upstream payload to standard full name
     obj["model"] = full_model
     apply_minimax_upstream_defaults(obj)
     _apply_dashscope_tool_choice_fix(obj, service_name)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from app.core.model_routing import CAPABILITY_CLOUD_MAP, resolve_model_and_service
+from app.core.model_routing import resolve_model_and_service
 from app.services.minimax_gateway import MINIMAX_M3_MODEL_ID, apply_minimax_upstream_defaults
 
 
@@ -16,10 +16,16 @@ def test_capability_1110_maps_to_minimax_thinking():
     assert resolve_model_and_service("1110") == ("MiniMax-M3-Thinking", "llm.minimax")
 
 
-def test_vision_codes():
-    assert resolve_model_and_service("V0000") == ("qwen3.7-plus", "llm.aliyun.codingplan")
-    assert resolve_model_and_service("V1000") == ("xopkimik26", "llm.glm51.enterprise")
-    assert resolve_model_and_service("V0010") == ("qwen3-vl-flash", "llm.aliyun.dashscope")
+VISION_TO_MINIMAX = ("MiniMax-M3", "llm.minimax")
+
+
+def test_vision_codes_route_to_minimax_m3():
+    for code in ("V0000", "V0010", "V0001", "V0101"):
+        assert resolve_model_and_service(code) == VISION_TO_MINIMAX, code
+    assert resolve_model_and_service("V1000") == (
+        "MiniMax-M3-Thinking",
+        "llm.minimax",
+    )
 
 
 def test_resolve_explicit_minimax_m3():

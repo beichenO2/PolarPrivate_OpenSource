@@ -1,7 +1,8 @@
 # 工具对话兼容改路由（tool_convo_reroute）
 
-> 适用于 `/v1/chat/completions` 统一 LLM 网关。  
-> 源码：`backend/app/api/v1_gateway.py`（`_request_has_tool_messages`、`_TOOL_CONVO_REROUTE`）  
+> **2026-08-17 退役。** 讯飞 `llm.glm51.enterprise` 与 `llm.aliyun.codingplan` 已从 `/v1` 注册表删除，`_TOOL_CONVO_REROUTE` 一并移除。下文仅作历史记录。
+
+> 原适用于 `/v1/chat/completions` 统一 LLM 网关。  
 > 与跨订阅负载均衡的关系见 [rate-limiting-algorithm.md](./rate-limiting-algorithm.md)。
 
 ## 背景

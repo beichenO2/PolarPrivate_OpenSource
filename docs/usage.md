@@ -118,7 +118,7 @@ curl -X POST http://127.0.0.1:12790/v1/chat/completions \
   }'
 ```
 
-PolarPrivate 在进程内完成能力码解析、Binding 选择、Secret 解密与认证头注入。调用方不会收到 API Key，上游真实模型名也不会替代响应中的能力码。`GET /v1/models` 可查看当前可用模型，`POST /v1/embeddings` 使用 `E000` 嵌入能力码。
+PolarPrivate 在进程内完成能力码解析、Binding 选择、Secret 解密与认证头注入。调用方不会收到 API Key，上游真实模型名也不会替代响应中的能力码。`GET /v1/models` 可查看当前可用模型；`POST /v1/embeddings` 使用 `E000`；生图 `I000` → `POST /v1/images/generations`，生音频 `A000` → `POST /v1/audio/speech`，生视频 `D000` → `POST /v1/videos/generations`。
 
 ### 场景 2：存储 API 密钥
 

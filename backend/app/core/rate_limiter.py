@@ -37,13 +37,11 @@ class ServiceLimitConfig:
 _DEFAULT_LIMITS = ServiceLimitConfig(max_concurrent=3, rpm=20)
 
 _SERVICE_LIMITS: dict[str, ServiceLimitConfig] = {
-    "llm.glm51.enterprise": ServiceLimitConfig(max_concurrent=10, rpm=60),
-    "llm.aliyun.codingplan": ServiceLimitConfig(max_concurrent=8, rpm=60),
     "llm.aliyun.dashscope":  ServiceLimitConfig(max_concurrent=50, rpm=600),
     "llm.minimax":           ServiceLimitConfig(max_concurrent=12, rpm=60),
-    # AKM 三臂并行；默认 3 会被 429-hold 占满，上游再无新请求。
     "llm.lant":              ServiceLimitConfig(max_concurrent=8, rpm=40),
     "llm.nebula":            ServiceLimitConfig(max_concurrent=4, rpm=20),
+    "llm.glm2":              ServiceLimitConfig(max_concurrent=8, rpm=40),
 }
 
 _ENV_PREFIX = "PRIVPORTAL_RL_"

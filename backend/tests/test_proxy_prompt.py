@@ -19,7 +19,7 @@ def _reset_security_prompt():
 
 class TestIsLlmService:
     def test_llm_prefix(self):
-        assert proxy_module._is_llm_service("llm.aliyun.codingplan") is True
+        assert proxy_module._is_llm_service("llm.aliyun.dashscope") is True
 
     def test_llm_prefix_simple(self):
         assert proxy_module._is_llm_service("llm.minimax") is True

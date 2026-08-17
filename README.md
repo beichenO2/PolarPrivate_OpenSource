@@ -8,7 +8,7 @@
 
 ## Agent 接入
 
-独立使用者把 QCSA 能力码发给 `http://127.0.0.1:12790/v1`，不要把 API Key 放进 Agent 工作区。用法见 [`docs/usage.md`](docs/usage.md)。
+独立使用者把 QCSA 能力码发给 `http://127.0.0.1:12790/v1`，不要把 API Key 放进 Agent 工作区。用法见 [`docs/usage.md`](docs/usage.md)。视觉码 `V0000`/`V0010`/`V1000`/`V0001`/`V0101` 走 MiniMax-M3；生图 `I000`、生音频 `A000`、生视频 `D000` 走同一 `llm.minimax` Binding。已退役：`1100` / xfyun / 本地 Ollama。
 
 Polarisor 生态内另有本机 Skill（不随公开仓发布）。
 
@@ -62,7 +62,7 @@ PRIVPORTAL_MASTER_PASSWORD=demo-only-not-a-secret privportal import-demo
 
 ### 为什么用 QCSA 能力码，而不是直接传模型名？
 
-调用方传 `0001`（Agent 均衡）或 `V0000`（默认视觉），不传 `xopdeepseekv4flash` / `qwen3.7-plus`。路由策略（上游模型、Binding、负载均衡、Fallback）集中在服务端 **14 条 QCSA 规则** + **4 条降级链**，换供应商时 Agent 配置不用改。
+调用方传 `0001`（Agent 均衡）或 `V0010`（视觉），不传上游模型名。路由策略集中在服务端 QCSA 表（见 `backend/app/core/CAPABILITY_CODES.md`），换供应商时 Agent 配置不用改。
 
 ### 为什么用 SQLite + Fernet 本地保险库，而不是云端 Secret Manager？
 
@@ -78,7 +78,7 @@ R9「明文外发禁令」删除了 `/api/secrets/{id}/reveal` 与 service-token
 
 | 维度 | 数据 |
 |------|------|
-| **QCSA 能力码** | 14 个云端码（文本 9 + 视觉 5）+ 本地嵌入 `L0000` / `E000` |
+| **QCSA 能力码** | 14 个云端码（文本 9 + 视觉 5）+ 嵌入 `E000` + 生图 `I000` / 生音频 `A000` / 生视频 `D000` |
 | **上游 LLM 通道** | 4 个 Binding：`llm.glm51.enterprise`、`llm.aliyun.codingplan`、`llm.aliyun.dashscope`、`llm.minimax` |
 | **上游模型槽位** | 8 个真实模型 ID（GLM-5.1、Kimi-K2.6、DS V4 Flash/Pro、MiniMax-M3 等） |
 | **负载均衡** | DS V4 Flash/Pro 跨讯飞 + 阿里云 **80:20** 权重；429/5xx 自动 Fallback（4 条链） |
@@ -182,11 +182,11 @@ curl -X POST http://127.0.0.1:12790/v1/chat/completions \
 
 | 码 | 场景 |
 |----|------|
-| `0000` | 默认均衡对话 → GLM-5.1 |
-| `0001` | Agent 杂活 / tool call → DS V4 Flash |
-| `0010` | 快速 + 超长上下文 |
-| `V0000` | 默认视觉 → qwen3.7-plus |
-| `V1000` | 单图旗舰 → Kimi-K2.6 |
+| `0000` | 默认均衡对话 → MiniMax-M3 |
+| `0001` | Agent 杂活 / tool call → MiniMax-M3 |
+| `0010` | 快速 → MiniMax-M3 |
+| `V0010` | 视觉首选 → MiniMax-M3 |
+| `V1000` | 视觉旗舰 → MiniMax-M3-Thinking |
 
 ---
 

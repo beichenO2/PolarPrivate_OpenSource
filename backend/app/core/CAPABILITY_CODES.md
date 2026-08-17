@@ -3,7 +3,7 @@
 调用方在 `model` 字段里只传**码**，不传厂商名、不传 Ollama 标签、不传端口号。  
 每个码 = **接口类型 + 模型槽位**；PolarPrivate 在服务端解析成真实模型并转发。
 
-**零兼容**：只认下表中的码。
+**零兼容**：只认下表中的码。已退役（无 Binding、不要再调用）：讯飞 xfyun / `llm.glm51.enterprise`、`llm.aliyun.codingplan`（`1100` `qwen3.7-plus`）、本地 Ollama（`L0000` `L0001`）。
 
 ---
 
@@ -24,79 +24,62 @@
 
 | 码 | QCSA | 槽位含义 | 默认上游模型 | Binding | 备注 |
 |----|------|----------|--------------|---------|------|
-| `0000` | 0000 | 默认均衡 | GLM-5.1 (200K) | llm.glm51.enterprise | 通用首选 |
-| `0010` | 0010 | 快速 | DS V4 Flash (1M) | llm.glm51.enterprise | 超长上下文+快 |
-| `0100` | 0100 | 长上下文 | DS V4 Pro (1M) | llm.glm51.enterprise | 旗舰推理 |
-| `0110` | 0110 | 快速+长上下文 | MiniMax-M3 | llm.minimax | 综合性价比 |
-| `1000` | 1000 | 旗舰（质量优先） | GLM-5.1 (200K) | llm.glm51.enterprise | 有质量要求的对话 |
+| `0000` | 0000 | 默认均衡 | MiniMax-M3 | llm.minimax | 通用首选 |
+| `0010` | 0010 | 快速 | MiniMax-M3 | llm.minimax | |
+| `0100` | 0100 | 长上下文 | deepseek-v4-pro | llm.lant | |
+| `0110` | 0110 | 快速+长上下文 | MiniMax-M3 | llm.minimax | |
+| `1000` | 1000 | 旗舰（质量优先） | MiniMax-M3 | llm.minimax | |
 | `1110` | 1110 | 旗舰+深度推理 | MiniMax-M3-Thinking | llm.minimax | 长思考链 |
 
 ### Agent 模型（A=1）
 
 | 码 | QCSA | 槽位含义 | 默认上游模型 | Binding | 备注 |
 |----|------|----------|--------------|---------|------|
-| `0001` | 0001 | Agent 均衡 | DS V4 Flash (1M) | llm.glm51.enterprise | Agentic 杂活，tool call 最快最准 |
-| `0011` | 0011 | Agent 快速 | DS V4 Flash (1M) | llm.glm51.enterprise | 同上 |
-| `1001` | 1001 | Agent 旗舰 | DS V4 Pro (1M) | llm.glm51.enterprise | 复杂多步推理 |
+| `0001` | 0001 | Agent 均衡 | MiniMax-M3 | llm.minimax | Agentic 杂活 |
+| `0011` | 0011 | Agent 快速 | MiniMax-M3 | llm.minimax | |
+| `0101` | 0101 | Agent 长上下文 | deepseek-v4-pro | llm.lant | |
+| `1001` | 1001 | Agent 旗舰 | deepseek-v4-pro | llm.lant | 复杂多步 |
 
 ### 视觉/多模态模型（V 前缀）
 
-| 码 | 含义 | 默认上游模型 | Binding | 备注 |
-|----|------|--------------|---------|------|
-| `V0000` | 默认视觉 | qwen3.7-plus | llm.aliyun.codingplan | **效果最好最详细** |
-| `V0010` | 视觉快速 | qwen3-vl-flash | llm.aliyun.dashscope | 大量图片（44p/30s），需请示用户 |
-| `V1000` | 单页视觉旗舰 | Kimi-K2.6 (256K) | llm.glm51.enterprise | **单图最强**，xfyun 限 3-4 张 |
-| `V0001` | 视觉 Agent 单图 | Kimi-K2.6 (256K) | llm.glm51.enterprise | K2.6 + tool call |
-| `V0101` | 视觉 Agent 多图 | qwen3.7-plus | llm.aliyun.codingplan | C=1 长上下文处理多图 + tool call |
+MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；显式 `qwen3-vl-flash` 可走 DashScope。
+
+| 码 | QCSA | 槽位含义 | 默认上游模型 | Binding | 备注 |
+|----|------|----------|--------------|---------|------|
+| `V0000` | 0000 | 默认视觉 | MiniMax-M3 | llm.minimax | 通用看图 |
+| `V0010` | 0010 | 视觉快速 | MiniMax-M3 | llm.minimax | AutoOffice Designer |
+| `V1000` | 1000 | 视觉旗舰 | MiniMax-M3-Thinking | llm.minimax | 深度看图 |
+| `V0001` | 0001 | 视觉 Agent | MiniMax-M3 | llm.minimax | 看图 + tool |
+| `V0101` | 0101 | 视觉 Agent 长上下文 | MiniMax-M3 | llm.minimax | 多图 / 长材料 |
 
 ---
 
-## VLM 使用策略
+## 云端嵌入 `POST /v1/embeddings`
 
-| 场景 | 推荐码 | 模型 | 理由 |
-|------|--------|------|------|
-| 聊天中 1 张图片 | `V1000` | Kimi-K2.6 | 单图理解最强 |
-| **默认**视觉任务 | `V0000` | qwen3.7-plus | 效果最好最详细 |
-| 大量图片（>5 张） | `V0010` | qwen3-vl-flash | 最快；Agent 使用前须请示用户 |
-| 视觉 Agent 单图 | `V0001` | Kimi-K2.6 | 单图+tool call |
-| 视觉 Agent 多图 | `V0101` | qwen3.7-plus | C=1 长上下文 + tool call |
+| 码 | 默认上游 | Binding |
+|----|----------|---------|
+| **`E000`** | DashScope `text-embedding-v3` | llm.aliyun.dashscope |
 
-⚠️ Kimi-K2.6 多图限制：xfyun 代理对多图输入限 3-4 张，超出返回 500
+环境变量：`CLOUD_EMBED_MODEL` 或 `CLOUD_EMBED_MODEL_E000`。
 
 ---
 
-## 本地 Ollama
+## 生图 / 生音频 / 生视频（MiniMax）
 
-| 码 | 槽位 | 默认 Ollama 模型 | 说明 |
-|----|------|------------------|------|
-| **`L0000`** | embedding | qwen3-embedding:8b | 本地向量化 |
+调用方只传能力码，不传 `image-01` / `speech-2.8-turbo` / `MiniMax-Hailuo-2.3`。上游路径与模型由 PolarPrivate 解析。Binding 复用 `llm.minimax`（`secret.minimax.api_key`）。
 
-环境变量：`OLLAMA_EMBED_MODEL` 或 `OLLAMA_MODEL_L0000`。
+| 码 | 入口 | 默认上游 | 备注 |
+|----|------|----------|------|
+| **`I000`** | `POST /v1/images/generations` | `image-01` | 接受 OpenAI 字段 `prompt`/`size`/`n`/`response_format` |
+| **`A000`** | `POST /v1/audio/speech` | `speech-2.8-turbo` | 接受 OpenAI 字段 `input`/`voice`；缺省音色 `male-qn-qingse` |
+| **`D000`** | `POST /v1/videos/generations` | `MiniMax-Hailuo-2.3` | 异步任务；`GET /v1/videos/generations/{task_id}` 查询 |
 
+环境变量：`POLARPRIVATE_IMAGE_MODEL` / `POLARPRIVATE_AUDIO_MODEL` / `POLARPRIVATE_VIDEO_MODEL` / `POLARPRIVATE_AUDIO_VOICE`。
 
----
-
-## 本地嵌入 `POST /v1/embeddings`
-
-| 码 | 默认 Ollama 模型 |
-|----|------------------|
-| **`E000`** | `qwen3-embedding:8b` |
-
-环境变量：`OLLAMA_EMBED_MODEL_E000` 或 `OLLAMA_EMBED_MODEL`。
-
----
-
-## Fallback 链
-
-| 码 | 主路由失败时降级到 |
-|----|-------------------|
-| `V1000` (K2.6 多图/500) | qwen3-vl-flash |
-| `0010` (DS Flash 不可用) | qwen3.7-plus |
-| `1000` (GLM 不可用) | DS V4 Pro |
-| `0001` (Agent Flash 不可用) | DS V4 Pro |
+Token Plan 当前不支持 MiniMax-H3；H3 请走按量 Key 后用 `/proxy/llm.minimax/v2/video_generation`。
 
 ---
 
 ## 响应里的 `model` 字段
 
-API 回显调用方传入的码（如 `V0000`、`0001`、`L0000`），不回显上游/Ollama 真实模型名。
+API 回显调用方传入的码（如 `V0010`、`0001`），不回显上游真实模型名。

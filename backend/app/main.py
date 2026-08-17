@@ -21,6 +21,7 @@ from app.api import onboarding as onboarding_routes
 from app.api import projects as projects_routes
 from app.api import proxy as proxy_routes
 from app.api import v1_gateway as v1_gateway_routes
+from app.api import v1_media as v1_media_routes
 from app.api import render as render_routes
 from app.api import secrets as secrets_routes
 from app.api import settings as settings_routes
@@ -142,6 +143,7 @@ def create_app() -> FastAPI:
     app.include_router(export_routes.router, prefix="/api")
     app.include_router(proxy_routes.router, prefix="/proxy")
     app.include_router(v1_gateway_routes.router, prefix="/v1")
+    app.include_router(v1_media_routes.router, prefix="/v1")
     app.include_router(v1_gateway_routes._rl_router, prefix="/api")
     app.include_router(test_center_routes.router, prefix="/api")
     app.include_router(user_accounts_routes.router, prefix="/api")

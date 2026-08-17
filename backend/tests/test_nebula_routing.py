@@ -42,7 +42,7 @@ def test_generic_names_do_not_silently_use_nebula():
     assert resolve_model_and_service("sonnet-4-6") == (None, None)
 
 
-def test_nebula_ids_are_opaque_and_do_not_steal_lant_or_xfyun():
+def test_nebula_ids_are_opaque_and_do_not_steal_lant_names():
     assert is_opaque_caller_model("nebula-opus-4-6")
     assert resolve_model_and_service("lant_ds_v4_pro") == (
         "deepseek-v4-pro",
@@ -52,7 +52,4 @@ def test_nebula_ids_are_opaque_and_do_not_steal_lant_or_xfyun():
         "deepseek-v4-pro",
         "llm.lant",
     )
-    assert resolve_model_and_service("ds-v4-flash") == (
-        "xopdeepseekv4flash",
-        "llm.glm51.enterprise",
-    )
+    assert resolve_model_and_service("ds-v4-flash") == (None, None)

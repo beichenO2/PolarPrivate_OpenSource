@@ -1,11 +1,8 @@
-"""Opaque model codes → real Ollama model names (server-side only).
+"""Local Ollama helpers (retired from the /v1 registry).
 
-Local codes:
-  L0000 → qwen3-embedding:8b  (本地 embedding)
-  L0001 → qwen3:8b            (本地 chat fallback)
-
-Legacy L000/L100/L101 mapped to L0000 for backward compat (deprecated).
-Cloud chat uses 4-bit QCSA or V-prefixed codes. See ``CAPABILITY_CODES.md``.
+L0000 / L0001 / llm.local.ollama are no longer resolved by
+``resolve_model_and_service``. Embeddings use E000 on DashScope.
+This module remains only for the unused local-forward path in v1_gateway.
 """
 
 from __future__ import annotations

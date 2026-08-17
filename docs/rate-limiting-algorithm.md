@@ -2,6 +2,8 @@
 
 > 适用于 `/v1/chat/completions` 统一 LLM 网关。
 > 源码：`backend/app/core/rate_limiter.py`、`backend/app/core/model_routing.py`、`backend/app/api/v1_gateway.py`
+>
+> **2026-08-17**：讯飞 `glm51` / 阿里 `codingplan` 已从注册表删除，`LOAD_BALANCE_GROUPS` 现为空（在册码单源）。下文权重表是历史记录。
 
 ## 关键决策（2026-06 · 软性跨订阅引流）
 

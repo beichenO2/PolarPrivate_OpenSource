@@ -49,6 +49,7 @@ PolarPrivate/
 │   │   │   ├── secrets.py       # Secret 元数据 CRUD + rotate + 连通性测试（无明文读取）
 │   │   │   ├── bindings.py      # Binding CRUD
 │   │   │   ├── v1_gateway.py    # /v1 chat / embeddings / models 统一网关
+│   │   │   ├── v1_media.py      # /v1 生图 I000 / 生音频 A000 / 生视频 D000
 │   │   │   ├── sanitize.py      # PII scan/redact 附属能力
 │   │   │   ├── sign.py          # B 类进程内签名
 │   │   │   ├── d_class.py       # D 类受控明文授权
@@ -200,7 +201,7 @@ PBKDF2-HMAC-SHA256 (480,000 iterations) + random 16-byte salt
 
 ### 5. 统一 LLM Gateway
 
-**`app/api/v1_gateway.py`** 提供 `POST /v1/chat/completions`、`POST /v1/embeddings` 与 `GET /v1/models`。文本/视觉调用以 QCSA 能力码表达需求，网关负责解析真实模型与 Binding、跨订阅负载均衡、限流等待、失败引流，以及响应 `model` 字段去供应商化。
+**`app/api/v1_gateway.py`** 提供 `POST /v1/chat/completions`、`POST /v1/embeddings` 与 `GET /v1/models`。**`app/api/v1_media.py`** 提供生图 `POST /v1/images/generations`（`I000`）、生音频 `POST /v1/audio/speech`（`A000`）、生视频 `POST /v1/videos/generations`（`D000`）及任务查询。文本/视觉调用以 QCSA 能力码表达需求，网关负责解析真实模型与 Binding、跨订阅负载均衡、限流等待、失败引流，以及响应 `model` 字段去供应商化。
 
 ```
 Agent / OpenAI SDK

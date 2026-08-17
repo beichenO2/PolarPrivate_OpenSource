@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.core.cloud_embed_routing import EMBED_CODE, EMBED_SERVICE_NAME
-from app.core.local_model_routing import LOCAL_SERVICE_NAME, all_l_codes
+from app.core.media_routing import AUDIO_CODE, IMAGE_CODE, MEDIA_SERVICE_NAME, VIDEO_CODE
 
 
 @dataclass
@@ -25,45 +25,12 @@ class ModelEntry:
 
 
 MODEL_CATALOG: list[ModelEntry] = [
-    # ── 讯飞星火 MaaS 企业版（xfyun）─────────────────────────────────────
-    ModelEntry(
-        id="xopglm52",
-        provider="xfyun",
-        service="llm.glm51.enterprise",
-        description="GLM-5.2（默认对话模型，QCSA 0000/1000），xfyun 现已支持；别名 glm。",
-    ),
-    ModelEntry(
-        id="xopglm51",
-        provider="xfyun",
-        service="llm.glm51.enterprise",
-        description="GLM-5.1（200K 上下文）；显式别名 glm-5.1 / glm51。",
-    ),
-    # ── glm2 独立线（新购 128K key，端点 88.api456.me）──────────────────
     ModelEntry(
         id="glm-5.2",
         provider="glm2",
         service="llm.glm2",
-        description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。填入 key 后可用。",
+        description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。",
     ),
-    ModelEntry(
-        id="xopkimik26",
-        provider="xfyun",
-        service="llm.glm51.enterprise",
-        description="Kimi-K2.6（256K 上下文），单图 VLM 最强；⚠️ xfyun 代理限制：最多 3-4 张图片，超出返回 500。",
-    ),
-    ModelEntry(
-        id="xopdeepseekv4flash",
-        provider="xfyun",
-        service="llm.glm51.enterprise",
-        description="Deepseek V4 Flash（1M 上下文），快速模型，agent 能力突出。",
-    ),
-    ModelEntry(
-        id="xopdeepseekv4pro",
-        provider="xfyun",
-        service="llm.glm51.enterprise",
-        description="Deepseek V4 Pro（1M 上下文），旗舰推理+编程，综合最强国模。",
-    ),
-    # ── MiniMax ───────────────────────────────────────────────────────────────
     ModelEntry(
         id="MiniMax-M3",
         provider="minimax",
@@ -76,7 +43,6 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.minimax",
         description="MiniMax M3 + thinking=adaptive，深度推理模式。",
     ),
-    # ── 实验室AKM / Nebula（/v1 调用名一律 nebula-*）────────────────────
     ModelEntry(
         id="nebula-opus-4-6",
         provider="nebula",
@@ -111,7 +77,7 @@ MODEL_CATALOG: list[ModelEntry] = [
         id="nebula-ds-v4-flash",
         provider="nebula",
         service="llm.nebula",
-        description="Nebula 渠道 · DeepSeek V4 Flash（勿与 xfyun ds-v4-flash / xop* 混淆）。",
+        description="Nebula 渠道 · DeepSeek V4 Flash。",
     ),
     ModelEntry(
         id="nebula-ds-v4-pro",
@@ -119,51 +85,49 @@ MODEL_CATALOG: list[ModelEntry] = [
         service="llm.nebula",
         description="Nebula 渠道 · DeepSeek V4 Pro（勿与 lant_ds_v4_pro / llm.lant 混淆）。",
     ),
-    # ── Aliyun / DashScope ───────────────────────────────────────────────────
-    ModelEntry(
-        id="qwen3.7-plus",
-        provider="aliyun",
-        service="llm.aliyun.codingplan",
-        description="Qwen3.7 Plus，默认视觉模型（效果好、详细度高）；多图无限制，44页文档可处理。",
-    ),
     ModelEntry(
         id="qwen3-vl-flash",
         provider="aliyun",
         service="llm.aliyun.dashscope",
-        description="Qwen3 VL Flash，批量图片首选（44页仅30s）；多图无限制，速度最快。",
+        description="Qwen3 VL Flash（DashScope 显式别名，不占 V 码）。",
     ),
-    # ── Cloud capability codes (4-bit QCSA; opaque to callers) ──────────────
-    # Q=Quality C=Context S=Speed A=Agentic (each 0 or 1)
-    ModelEntry(id="0000", provider="capability", service="llm.glm51.enterprise", description="默认均衡 → GLM-5.2（xfyun + glm2 两线负载均衡 50/50）"),
-    ModelEntry(id="0010", provider="capability", service="llm.glm51.enterprise", description="快速 → DS V4 Flash（1M 上下文）"),
-    ModelEntry(id="0100", provider="capability", service="llm.glm51.enterprise", description="长上下文 → DS V4 Pro（1M）"),
+    ModelEntry(id="0000", provider="capability", service="llm.minimax", description="默认均衡 → MiniMax-M3"),
+    ModelEntry(id="0010", provider="capability", service="llm.minimax", description="快速 → MiniMax-M3"),
+    ModelEntry(id="0100", provider="capability", service="llm.lant", description="长上下文 → lant deepseek-v4-pro"),
     ModelEntry(id="0110", provider="capability", service="llm.minimax", description="快速+长上下文 → MiniMax-M3"),
-    ModelEntry(id="1000", provider="capability", service="llm.glm51.enterprise", description="旗舰质量 → GLM-5.2"),
+    ModelEntry(id="1000", provider="capability", service="llm.minimax", description="旗舰质量 → MiniMax-M3"),
     ModelEntry(id="1110", provider="capability", service="llm.minimax", description="旗舰+深度推理 → MiniMax-M3-Thinking"),
-    # Agentic codes (A=1)
-    ModelEntry(id="0001", provider="capability", service="llm.glm51.enterprise", description="Agent 均衡 → DS V4 Flash（tool call 快准）"),
-    ModelEntry(id="0011", provider="capability", service="llm.glm51.enterprise", description="Agent 快速 → DS V4 Flash"),
-    ModelEntry(id="1001", provider="capability", service="llm.glm51.enterprise", description="Agent 旗舰 → DS V4 Pro（复杂多步）"),
-    # Vision/Multimodal (V prefix)
-    ModelEntry(id="V0000", provider="capability", service="llm.aliyun.codingplan", description="默认视觉 → qwen3.7-plus（效果最好最详细，44 页 PDF 可处理）"),
-    ModelEntry(id="V0010", provider="capability", service="llm.aliyun.dashscope", description="视觉快速 → qwen3-vl-flash（批量图片最快，44 页仅 30s）"),
-    ModelEntry(id="V1000", provider="capability", service="llm.glm51.enterprise", description="单页视觉旗舰 → Kimi-K2.6（单图最强，xfyun 代理限 3-4 张）"),
-    ModelEntry(id="V0001", provider="capability", service="llm.glm51.enterprise", description="视觉 Agent 单图 → Kimi-K2.6（单图最强 + tool call；⚠️限3-4图）"),
-    ModelEntry(id="V0101", provider="capability", service="llm.aliyun.codingplan", description="视觉 Agent 多图 → qwen3.7-plus（44页可处理，C=1 长上下文 + tool call）"),
-    # ── Local (L-prefix; embedding only) ───────────────────────────────────
-    *[
-        ModelEntry(
-            id=code,
-            provider="local",
-            service=LOCAL_SERVICE_NAME,
-            description="Local embedding — qwen3-embedding:8b.",
-        )
-        for code in all_l_codes()
-    ],
+    ModelEntry(id="0001", provider="capability", service="llm.minimax", description="Agent 均衡 → MiniMax-M3"),
+    ModelEntry(id="0011", provider="capability", service="llm.minimax", description="Agent 快速 → MiniMax-M3"),
+    ModelEntry(id="0101", provider="capability", service="llm.lant", description="Agent 长上下文 → lant deepseek-v4-pro"),
+    ModelEntry(id="1001", provider="capability", service="llm.lant", description="Agent 旗舰 → lant deepseek-v4-pro"),
+    ModelEntry(id="V0000", provider="capability", service="llm.minimax", description="默认视觉 → MiniMax-M3"),
+    ModelEntry(id="V0010", provider="capability", service="llm.minimax", description="视觉快速 → MiniMax-M3"),
+    ModelEntry(id="V1000", provider="capability", service="llm.minimax", description="视觉旗舰 → MiniMax-M3-Thinking"),
+    ModelEntry(id="V0001", provider="capability", service="llm.minimax", description="视觉 Agent → MiniMax-M3"),
+    ModelEntry(id="V0101", provider="capability", service="llm.minimax", description="视觉 Agent 长上下文 → MiniMax-M3"),
     ModelEntry(
         id=EMBED_CODE,
         provider="cloud",
         service=EMBED_SERVICE_NAME,
         description="Cloud embedding slot → DashScope text-embedding-v3 (POST /v1/embeddings only).",
+    ),
+    ModelEntry(
+        id=IMAGE_CODE,
+        provider="capability",
+        service=MEDIA_SERVICE_NAME,
+        description="生图 → MiniMax image-01（POST /v1/images/generations）。",
+    ),
+    ModelEntry(
+        id=AUDIO_CODE,
+        provider="capability",
+        service=MEDIA_SERVICE_NAME,
+        description="生音频 / TTS → MiniMax speech-2.8-turbo（POST /v1/audio/speech）。",
+    ),
+    ModelEntry(
+        id=VIDEO_CODE,
+        provider="capability",
+        service=MEDIA_SERVICE_NAME,
+        description="生视频 → MiniMax-Hailuo-2.3（POST /v1/videos/generations）。",
     ),
 ]

@@ -719,26 +719,56 @@ PII 正则扫描/涂抹是附属能力，不依赖 Identity Vault，也不会自
 }
 ```
 
+### `POST /v1/images/generations`
+
+生图网关。`model` 使用 `I000`；PolarPrivate 解析为 MiniMax `image-01` 并转发到 `/image_generation`。接受 OpenAI 字段 `prompt` / `size` / `n` / `response_format`（`b64_json` → MiniMax `base64`），也接受 MiniMax 原生 `aspect_ratio`。响应 `model` 回显 `I000`，`data` 为 OpenAI 形状 `[{url}]` 或 `[{b64_json}]`。
+
+```json
+{
+  "model": "I000",
+  "prompt": "a red cube on a table",
+  "size": "1024x1024"
+}
+```
+
+### `POST /v1/audio/speech`
+
+生音频 / TTS 网关。`model` 使用 `A000`；解析为 MiniMax `speech-2.8-turbo` 并转发到 `/t2a_v2`。接受 OpenAI 字段 `input` / `voice` / `speed`，也接受 MiniMax 原生 `text` + `voice_setting`。缺省音色 `male-qn-qingse`。响应为 MiniMax JSON（hex 音频），`model` 回显 `A000`。
+
+```json
+{
+  "model": "A000",
+  "input": "你好，这是一段测试语音。"
+}
+```
+
+### `POST /v1/videos/generations`
+
+生视频网关。`model` 使用 `D000`；解析为 `MiniMax-Hailuo-2.3` 并转发到 `/video_generation`。异步：响应含 `task_id`。查询：`GET /v1/videos/generations/{task_id}` → MiniMax `/query/video_generation`。Token Plan 不支持 MiniMax-H3。
+
+```json
+{
+  "model": "D000",
+  "prompt": "a boat on a quiet lake, cinematic",
+  "duration": 6,
+  "resolution": "768P"
+}
+```
+
 ### `POST /v1/chat/completions`
 
 Polarisor 生态统一 LLM 网关（OpenAI 兼容）。按 QCSA capability code 或模型别名路由到
-已配置的 Binding 上游；支持跨订阅负载均衡、429 等待重试、工具对话兼容改路由。
+已配置的 Binding 上游。码表见 `backend/app/core/CAPABILITY_CODES.md`。
 
 **请求体**: 与 OpenAI Chat Completions 相同（`model`、`messages`、可选 `tools` /
-`stream` 等）。`model` 可为 4-bit QCSA code（如 `0001`）、视觉码 `V*`、或别名
-`glm51` / `qwen3.7-plus` 等。
+`stream` 等）。`model` 可为 4-bit QCSA code（如 `0001`）、视觉码 `V0000`/`V0010`/`V1000`、或在册别名
+`MiniMax-M3` / `glm-5.2` / `nebula-*` 等。已退役：`1100`、`qwen3.7-plus`、xfyun/`xop*`、`L0000`。
 
 **可选请求头**:
 
 | Header | 值 | 说明 |
 | ------ | -- | ---- |
 | `X-Client-Id` | `polarclaw` / `polarui` / … | FairScheduler 客户端身份与优先级（PolarClaw SDK 默认带 `polarclaw`） |
-| `x-pp-no-reroute` | `1` | **诊断开关**：禁用「工具对话改路由」，强制走 LOAD_BALANCE 选中的原始订阅，用于复现 glm51 上游行为。不影响跨订阅权重分流本身。 |
-
-**工具对话改路由（默认启用，无需请求头）**: 当 messages 已含 `tool_calls` 或
-`role: "tool"`，且权重选源落在 `llm.glm51.enterprise` 时，网关自动改发
-`qwen3.7-plus` @ `llm.aliyun.codingplan`，避免讯飞订阅对多轮 tool 上下文返回空 200。
-详见 [tool-conversation-reroute.md](./tool-conversation-reroute.md)。
 
 **限速与跨订阅引流**: 本地不对调用方返回限速 429；并发信号量 + 冷却引流 + 上游
 429 等待重试。详见 [rate-limiting-algorithm.md](./rate-limiting-algorithm.md)。

@@ -53,8 +53,8 @@ def test_import_demo_unlocked_returns_summary(client) -> None:
     assert r.status_code == 200
     data = r.json()
     assert "project_id" in data
-    assert data["secrets"] >= 2
-    assert data["bindings"] >= 2
+    assert data["secrets"] == 1
+    assert data["bindings"] == 1
 
 
 def test_init_db_creates_schema_on_empty_sqlite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
