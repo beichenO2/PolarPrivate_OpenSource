@@ -140,6 +140,7 @@ knowlever: 3    digist: 3    sotagent: 2    unknown: 5
 | `llm.aliyun.codingplan` | 8 |
 | `llm.aliyun.dashscope` | 50 |
 | `llm.minimax` | 12 |
+| `llm.minimax_1` | 12 |
 | 其他（默认） | 3 |
 
 ### 环境变量

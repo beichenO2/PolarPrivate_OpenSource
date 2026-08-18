@@ -39,6 +39,7 @@ _DEFAULT_LIMITS = ServiceLimitConfig(max_concurrent=3, rpm=20)
 _SERVICE_LIMITS: dict[str, ServiceLimitConfig] = {
     "llm.aliyun.dashscope":  ServiceLimitConfig(max_concurrent=50, rpm=600),
     "llm.minimax":           ServiceLimitConfig(max_concurrent=12, rpm=60),
+    "llm.minimax_1":         ServiceLimitConfig(max_concurrent=12, rpm=60),
     "llm.lant":              ServiceLimitConfig(max_concurrent=8, rpm=40),
     "llm.nebula":            ServiceLimitConfig(max_concurrent=4, rpm=20),
     "llm.glm2":              ServiceLimitConfig(max_concurrent=8, rpm=40),

@@ -11,9 +11,10 @@ R8 enhancements (2026-04-26):
 - Structured upstream error wrapping with retry suggestions
 
 R10 enhancements (2026-05-10):
-- Fallback chain: when primary binding fails (429/5xx), automatically try fallback bindings
+- Fallback chain: when primary binding fails (402/429/5xx), automatically try fallback bindings
 - Multi-key rotation: supports multiple API keys for the same service
 - Cooldown mechanism: failed bindings are temporarily excluded from fallback chain
+- 402 (quota / Token Plan) is overflow, not a hard stop — try the next official key
 """
 
 from __future__ import annotations
@@ -247,6 +248,19 @@ def _reset_binding_failure_state(binding: Binding) -> None:
     binding.consecutive_failures = 0
 
 
+def _fallback_service_names(binding: Binding) -> list[str]:
+    """Parse `fallback_chain` JSON into service_name strings, in order."""
+    if not binding.fallback_chain:
+        return []
+    try:
+        names = json.loads(binding.fallback_chain)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(names, list):
+        return []
+    return [name for name in names if isinstance(name, str) and name.strip()]
+
+
 def _resolve_fallback_chain(session: Session, primary_binding: Binding) -> list[Binding]:
     """Resolve fallback chain from primary binding.
 
@@ -254,19 +268,7 @@ def _resolve_fallback_chain(session: Session, primary_binding: Binding) -> list[
     """
     chain = [primary_binding]
 
-    if not primary_binding.fallback_chain:
-        return chain
-
-    try:
-        fallback_names = json.loads(primary_binding.fallback_chain)
-        if not isinstance(fallback_names, list):
-            return chain
-    except (json.JSONDecodeError, TypeError):
-        return chain
-
-    for name in fallback_names[:_MAX_FALLBACK_ATTEMPTS - 1]:
-        if not isinstance(name, str):
-            continue
+    for name in _fallback_service_names(primary_binding)[:_MAX_FALLBACK_ATTEMPTS - 1]:
         fb_binding = session.scalars(
             select(Binding).where(Binding.service_name == name)
         ).first()
@@ -277,8 +279,11 @@ def _resolve_fallback_chain(session: Session, primary_binding: Binding) -> list[
 
 
 def _should_trigger_fallback(status_code: int) -> bool:
-    """Determine if error status code should trigger fallback chain."""
-    return status_code in (429, 500, 502, 503, 504)
+    """Determine if error status code should trigger fallback chain.
+
+    402 = upstream quota / Token Plan exhausted (MiniMax 2067). Treat as overflow.
+    """
+    return status_code in (402, 429, 500, 502, 503, 504)
 
 
 def _wrap_upstream_error(

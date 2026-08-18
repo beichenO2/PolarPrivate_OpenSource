@@ -42,6 +42,8 @@ from app.api.proxy import (
     _record_usage,
     _update_service_status,
     _SKIP_REQUEST_HEADERS,
+    _fallback_service_names,
+    _should_trigger_fallback,
 )
 from app.core.model_catalog import MODEL_CATALOG
 from app.core.cloud_embed_routing import (
@@ -777,13 +779,19 @@ async def unified_chat_completions(
                 _release_budget(is_error=True)
 
             # ── Soft routing: divert to a non-cooling alternative subscription ──
-            # On 429/5xx, route this request to a *different* subscription that
-            # isn't rate-limited ("引流到没有限流的订阅"), instead of erroring.
-            # Order: other healthy members of this tier's load-balance group,
-            # then the static per-capability fallback as a last resort.
-            if resp.status_code in (429, 500, 502, 503, 504):
+            # On 402/429/5xx, try a different official key / subscription instead
+            # of failing the caller. Order:
+            #   1) primary binding.fallback_chain (explicit overflow, e.g. llm.minimax_1)
+            #   2) other healthy members of this tier's load-balance group
+            #   3) static per-capability fallback as a last resort
+            if _should_trigger_fallback(resp.status_code):
                 alt_candidates: list[tuple[str, str]] = []  # (model, service)
                 seen_services = {service_name}
+                for fb_name in _fallback_service_names(binding):
+                    if fb_name in seen_services or _rl.get_budget(fb_name).is_cooling_down:
+                        continue
+                    alt_candidates.append((full_model, fb_name))
+                    seen_services.add(fb_name)
                 for s in (lb_group or []):
                     svc = s["service"]
                     if svc in seen_services or _rl.get_budget(svc).is_cooling_down:

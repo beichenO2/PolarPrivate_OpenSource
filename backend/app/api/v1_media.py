@@ -17,9 +17,11 @@ from app.api.deps import get_db, get_vault
 from app.api.proxy import (
     _NON_STREAM_TIMEOUT,
     _SKIP_REQUEST_HEADERS,
+    _fallback_service_names,
     _filter_response_headers,
     _outgoing_auth_header,
     _record_usage,
+    _should_trigger_fallback,
     _update_service_status,
     _wrap_upstream_error,
 )
@@ -219,6 +221,46 @@ async def _forward_json(
             is_error=is_error,
             error_message=err_msg,
         )
+        should_overflow = (
+            (resp.status_code >= 400 and _should_trigger_fallback(resp.status_code))
+            or logical is not None
+        )
+        if should_overflow:
+            for fb_name in _fallback_service_names(binding):
+                try:
+                    fb_binding, _, fb_plain, fb_base = _require_binding(session, vault, fb_name)
+                except HTTPException:
+                    continue
+                fb_headers = _forward_headers(request, _outgoing_auth_header(fb_binding, fb_plain))
+                try:
+                    fb_resp = await client.request(
+                        method,
+                        f"{fb_base}/{path.lstrip('/')}",
+                        headers=fb_headers,
+                        content=body,
+                        timeout=_NON_STREAM_TIMEOUT,
+                    )
+                except httpx.RequestError:
+                    continue
+                fb_logical = None
+                if fb_resp.status_code < 400:
+                    try:
+                        fb_loaded = json.loads(fb_resp.content.decode("utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        fb_loaded = None
+                    if isinstance(fb_loaded, dict):
+                        fb_logical = minimax_logical_error(fb_loaded)
+                if fb_resp.status_code < 400 and fb_logical is None:
+                    _record_usage(session, fb_name, None, is_error=False)
+                    _update_service_status(session, fb_name, is_error=False)
+                    _release()
+                    out = _stamp_json(fb_resp.content, stamp)
+                    return Response(
+                        content=out,
+                        status_code=fb_resp.status_code,
+                        headers=_filter_response_headers(fb_resp.headers),
+                    )
+
         if resp.status_code >= 400:
             _release(is_error=True)
             return _wrap_upstream_error(

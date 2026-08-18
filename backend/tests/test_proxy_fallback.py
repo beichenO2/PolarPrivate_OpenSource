@@ -192,6 +192,7 @@ def test_should_trigger_fallback() -> None:
     from app.api.proxy import _should_trigger_fallback
 
     # Should trigger fallback
+    assert _should_trigger_fallback(402) is True
     assert _should_trigger_fallback(429) is True
     assert _should_trigger_fallback(500) is True
     assert _should_trigger_fallback(502) is True

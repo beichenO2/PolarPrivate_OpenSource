@@ -35,7 +35,7 @@
 
 | 码 | QCSA | 槽位含义 | 默认上游模型 | Binding | 备注 |
 |----|------|----------|--------------|---------|------|
-| `0001` | 0001 | Agent 均衡 | MiniMax-M3 | llm.minimax | Agentic 杂活 |
+| `0001` | 0001 | Agent 均衡 | MiniMax-M3 | llm.minimax | Agentic 杂活；402/限流溢到 `llm.minimax_1` |
 | `0011` | 0011 | Agent 快速 | MiniMax-M3 | llm.minimax | |
 | `0101` | 0101 | Agent 长上下文 | deepseek-v4-pro | llm.lant | |
 | `1001` | 1001 | Agent 旗舰 | deepseek-v4-pro | llm.lant | 复杂多步 |
@@ -66,7 +66,7 @@ MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；
 
 ## 生图 / 生音频 / 生视频（MiniMax）
 
-调用方只传能力码，不传 `image-01` / `speech-2.8-turbo` / `MiniMax-Hailuo-2.3`。上游路径与模型由 PolarPrivate 解析。Binding 复用 `llm.minimax`（`secret.minimax.api_key`）。
+调用方只传能力码，不传 `image-01` / `speech-2.8-turbo` / `MiniMax-Hailuo-2.3`。上游路径与模型由 PolarPrivate 解析。Binding 默认 `llm.minimax`（`secret.minimax.api_key`）；该 Binding 的 `fallback_chain` 指向官方备线 `llm.minimax_1`（`secret.minimax.minimax_1`）。所有 MiniMax 请求先打原版，402 / 429 / 5xx 再切备线。
 
 | 码 | 入口 | 默认上游 | 备注 |
 |----|------|----------|------|

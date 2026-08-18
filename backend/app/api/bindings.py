@@ -323,7 +323,7 @@ def set_binding_fallback(
             - priority: Weight for load balancing (higher = more traffic)
 
     The fallback_chain should contain service_name of other bindings.
-    On failure (429/5xx), the proxy will try each binding in order.
+    On failure (402/429/5xx), the proxy and /v1 gateway will try each binding in order.
     """
     row = session.get(Binding, binding_id)
     if row is None:
