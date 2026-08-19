@@ -34,4 +34,5 @@ fi
 cd "$PROJECT_DIR/backend"
 export PRIVPORTAL_API_HOST=127.0.0.1
 export PRIVPORTAL_API_PORT=$PORT
+export CLOUD_EMBED_MODEL="${CLOUD_EMBED_MODEL:-qwen3.7-text-embedding}"
 exec "$UVICORN_BIN" app.main:app --host "$PRIVPORTAL_API_HOST" --port "$PRIVPORTAL_API_PORT"

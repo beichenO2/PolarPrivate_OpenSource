@@ -43,6 +43,7 @@ _SERVICE_LIMITS: dict[str, ServiceLimitConfig] = {
     "llm.lant":              ServiceLimitConfig(max_concurrent=8, rpm=40),
     "llm.nebula":            ServiceLimitConfig(max_concurrent=4, rpm=20),
     "llm.glm2":              ServiceLimitConfig(max_concurrent=8, rpm=40),
+    "llm.rightapi":          ServiceLimitConfig(max_concurrent=4, rpm=20),
 }
 
 _ENV_PREFIX = "PRIVPORTAL_RL_"

@@ -32,6 +32,12 @@ MODEL_CATALOG: list[ModelEntry] = [
         description="GLM-5.2（128K 上下文），独立 glm2 线路（88.api456.me）；别名 glm2。",
     ),
     ModelEntry(
+        id="gpt-5.6-sol",
+        provider="rightapi",
+        service="llm.rightapi",
+        description="GPT-5.6 Sol（RightAPI Codex 号池，https://www.rightapi.ai/codex/v1）。",
+    ),
+    ModelEntry(
         id="MiniMax-M3",
         provider="minimax",
         service="llm.minimax",
@@ -110,7 +116,7 @@ MODEL_CATALOG: list[ModelEntry] = [
         id=EMBED_CODE,
         provider="cloud",
         service=EMBED_SERVICE_NAME,
-        description="Cloud embedding slot → DashScope text-embedding-v3 (POST /v1/embeddings only).",
+        description="Cloud embedding slot → DashScope qwen3.7-text-embedding (POST /v1/embeddings only).",
     ),
     ModelEntry(
         id=IMAGE_CODE,

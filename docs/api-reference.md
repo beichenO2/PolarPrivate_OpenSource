@@ -710,7 +710,7 @@ PII 正则扫描/涂抹是附属能力，不依赖 Identity Vault，也不会自
 
 ### `POST /v1/embeddings`
 
-统一 Embeddings 网关。请求体采用 OpenAI 兼容格式，`model` 使用 `E000` 能力码；PolarPrivate 将其解析为已配置的嵌入模型与 Binding，并在进程内注入认证信息。
+统一 Embeddings 网关。请求体采用 OpenAI 兼容格式，`model` 使用 `E000` 能力码；PolarPrivate 将其解析为 DashScope `qwen3.7-text-embedding`（可用 `CLOUD_EMBED_MODEL` 覆盖）与 Binding，并在进程内注入认证信息。调用方只传 `E000`，不传上游模型名。
 
 ```json
 {
@@ -762,7 +762,7 @@ Polarisor 生态统一 LLM 网关（OpenAI 兼容）。按 QCSA capability code 
 
 **请求体**: 与 OpenAI Chat Completions 相同（`model`、`messages`、可选 `tools` /
 `stream` 等）。`model` 可为 4-bit QCSA code（如 `0001`）、视觉码 `V0000`/`V0010`/`V1000`、或在册别名
-`MiniMax-M3` / `glm-5.2` / `nebula-*` 等。已退役：`1100`、`qwen3.7-plus`、xfyun/`xop*`、`L0000`。
+`MiniMax-M3` / `glm-5.2` / `gpt-5.6-sol` / `nebula-*` 等。已退役：`1100`、`qwen3.7-plus`、xfyun/`xop*`、`L0000`。
 
 **可选请求头**:
 

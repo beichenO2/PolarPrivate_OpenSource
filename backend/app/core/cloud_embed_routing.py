@@ -10,7 +10,7 @@ import os
 
 EMBED_CODE = "E000"
 EMBED_SERVICE_NAME = "llm.aliyun.dashscope"
-DEFAULT_CLOUD_EMBED_MODEL = "text-embedding-v3"
+DEFAULT_CLOUD_EMBED_MODEL = "qwen3.7-text-embedding"
 
 
 def normalize_embed_code(model: str) -> str | None:

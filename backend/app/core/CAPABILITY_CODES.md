@@ -58,7 +58,7 @@ MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；
 
 | 码 | 默认上游 | Binding |
 |----|----------|---------|
-| **`E000`** | DashScope `text-embedding-v3` | llm.aliyun.dashscope |
+| **`E000`** | DashScope `qwen3.7-text-embedding` | llm.aliyun.dashscope |
 
 环境变量：`CLOUD_EMBED_MODEL` 或 `CLOUD_EMBED_MODEL_E000`。
 
@@ -77,6 +77,18 @@ MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；
 环境变量：`POLARPRIVATE_IMAGE_MODEL` / `POLARPRIVATE_AUDIO_MODEL` / `POLARPRIVATE_VIDEO_MODEL` / `POLARPRIVATE_AUDIO_VOICE`。
 
 Token Plan 当前不支持 MiniMax-H3；H3 请走按量 Key 后用 `/proxy/llm.minimax/v2/video_generation`。
+
+---
+
+## 显式模型别名（非 QCSA）
+
+QCSA 码之外，`/v1` 仍接受下列在册上游名（与 glm-5.2 同类）。业务代码优先传 QCSA；需要钉死某条付费线路时再用显式 id。
+
+| 调用方 model | 上游 | Binding | 备注 |
+|--------------|------|---------|------|
+| `gpt-5.6-sol` | gpt-5.6-sol | llm.rightapi | RightAPI Codex 号池；Secret `secret.rightapi.api_key` |
+| `gpt-5.6` | gpt-5.6-sol | llm.rightapi | 别名，与 OpenAI `gpt-5.6` → Sol 一致 |
+| `glm-5.2` | glm-5.2 | llm.glm2 | 独立 glm2 线 |
 
 ---
 

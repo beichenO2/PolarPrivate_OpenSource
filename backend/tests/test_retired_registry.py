@@ -102,6 +102,10 @@ def test_live_codes_still_resolve():
     assert resolve_model_and_service("0001") == ("MiniMax-M3", "llm.minimax")
     assert resolve_model_and_service("0100") == ("deepseek-v4-pro", "llm.lant")
     assert resolve_model_and_service("glm-5.2") == ("glm-5.2", "llm.glm2")
+    assert resolve_model_and_service("gpt-5.6-sol") == (
+        "gpt-5.6-sol",
+        "llm.rightapi",
+    )
     assert resolve_model_and_service("qwen3-vl-flash") == (
         "qwen3-vl-flash",
         "llm.aliyun.dashscope",

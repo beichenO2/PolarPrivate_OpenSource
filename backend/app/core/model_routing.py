@@ -54,6 +54,9 @@ STRICT_MODEL_MAP = {
     # 独立 glm2 线（88.api456.me）；xfyun 别名已退役
     "glm-5.2": "glm-5.2",
     "glm2": "glm-5.2",
+    # RightAPI Codex 号池
+    "gpt-5.6-sol": "gpt-5.6-sol",
+    "gpt-5.6": "gpt-5.6-sol",
     # lant.top relay
     "deepseek-v4-pro": "deepseek-v4-pro",
     "lant_ds_v4_pro": "deepseek-v4-pro",
@@ -69,6 +72,7 @@ STRICT_MODEL_MAP = {
 
 MODEL_SERVICE_MAP = {
     "glm-5.2": "llm.glm2",
+    "gpt-5.6-sol": "llm.rightapi",
     "deepseek-v4-pro": "llm.lant",
     "qwen3-vl-flash": "llm.aliyun.dashscope",
     "MiniMax-M3": "llm.minimax",

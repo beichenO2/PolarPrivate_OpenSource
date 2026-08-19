@@ -162,6 +162,7 @@ _SERVICE_DISPLAY_NAMES: dict[str, str] = {
     "llm.nebula": "实验室AKM / Nebula",
     "llm.lant": "lant.top relay",
     "llm.glm2": "GLM-5.2 独立线",
+    "llm.rightapi": "RightAPI Codex",
 }
 
 
