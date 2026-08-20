@@ -35,6 +35,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 
 from app.api.deps import get_db, require_unlocked_vault
 from app.core.config import Settings
+from app.core.file_inject import FileInjectError, expand_pp_files
 from app.core.host_resolve import ensure_resolvable_base_url
 from app.db.models import Binding, LLMServiceStatus, ProxyUsage, Secret
 from app.logging_config import get_logger, sanitize_user_facing_string
@@ -44,6 +45,17 @@ from app.services.vault import VaultService
 router = APIRouter(tags=["proxy"])
 
 _LOG = get_logger(__name__)
+
+
+def expand_request_pp_files(obj: dict[str, Any]) -> dict[str, Any]:
+    """Expand ``pp_files`` or raise PolarPrivate-shaped HTTPException."""
+    try:
+        return expand_pp_files(obj)
+    except FileInjectError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"detail": str(exc), "code": exc.code},
+        ) from exc
 
 _SKIP_REQUEST_HEADERS = frozenset({
     "host",
@@ -558,9 +570,13 @@ class _ProxyContext:
         ):
             try:
                 obj = json.loads(self._body_content.decode("utf-8"))
+                obj = expand_request_pp_files(obj)
                 self._use_streaming = obj.get("stream") is True
                 self._is_chat_json = "messages" in obj
                 self._append_prompt_body = obj.pop("append_system_prompt", None)
+                self._body_content = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+            except HTTPException:
+                raise
             except (json.JSONDecodeError, UnicodeDecodeError):
                 pass
 
@@ -820,6 +836,7 @@ async def proxy_request(
 
     # Create proxy context
     ctx = _ProxyContext(request, path, project_id, vault, session)
+    await ctx._parse_body()
 
     attempted_bindings: list[str] = []
     last_error_response: Response | None = None

@@ -44,6 +44,7 @@ from app.api.proxy import (
     _SKIP_REQUEST_HEADERS,
     _fallback_service_names,
     _should_trigger_fallback,
+    expand_request_pp_files,
 )
 from app.core.model_catalog import MODEL_CATALOG
 from app.core.cloud_embed_routing import (
@@ -512,6 +513,8 @@ async def unified_chat_completions(
             "detail": "Request body must be valid JSON",
             "code": "INVALID_JSON",
         })
+
+    obj = expand_request_pp_files(obj)
 
     model = obj.get("model", "")
     if not model:
