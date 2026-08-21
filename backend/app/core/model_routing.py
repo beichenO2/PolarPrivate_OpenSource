@@ -60,7 +60,8 @@ STRICT_MODEL_MAP = {
     # lant.top relay
     "deepseek-v4-pro": "deepseek-v4-pro",
     "lant_ds_v4_pro": "deepseek-v4-pro",
-    # 阿里云 DashScope VL
+    # 阿里云百炼 / DashScope
+    "qwen3.8-27b": "qwen3.8-27b",
     "qwen-vl": "qwen3-vl-flash",
     "qwen3-vl": "qwen3-vl-flash",
     "qwen3-vl-flash": "qwen3-vl-flash",
@@ -74,6 +75,7 @@ MODEL_SERVICE_MAP = {
     "glm-5.2": "llm.glm2",
     "gpt-5.6-sol": "llm.rightapi",
     "deepseek-v4-pro": "llm.lant",
+    "qwen3.8-27b": "llm.aliyun.dashscope",
     "qwen3-vl-flash": "llm.aliyun.dashscope",
     "MiniMax-M3": "llm.minimax",
     "MiniMax-M3-Thinking": "llm.minimax",

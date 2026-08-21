@@ -54,7 +54,7 @@ PolarPrivate 是 Polarisor 生态的供给平面（supply plane）：**本地密
 | Starlette | ≥0.46 (via FastAPI) | ASGI primitives | FastAPI’s documented lower bound; use the resolver-picked version—do not pin Starlette independently unless you hit a bug. **Confidence: HIGH** |
 | Uvicorn | 0.44.x | ASGI server | Standard production/dev server for FastAPI; HTTP/1.1, WebSockets, `--reload` for local dev. **Confidence: HIGH** |
 | SQLAlchemy | 2.0.49 | ORM + Core | 2.x style (`select()`, `Mapped`) is the maintained path; SQLite + async (`aiosqlite`) fits a local app. **Confidence: HIGH** |
-| SQLite | 3.x (bundled with Python) | Embedded DB | Zero ops, single file, matches “local single user”; use WAL + busy timeout for concurrent API + proxy. **Confidence: HIGH** |
+| SQLite | 3.x (bundled with Python) | Embedded DB | Zero ops, single file, matches “local single user”. Implemented 2026-08-21: `sqlite3.connect` timeout=30; QueuePool `pool_size=100`. `journal_mode` not set in `session.py` (SQLite default DELETE). WAL was a recommendation, not current code. See `docs/runtime-limits.md`. **Confidence: HIGH** |
 | Alembic | 1.18.x | Migrations | Official companion to SQLAlchemy; required once schema evolves beyond bootstrap. **Confidence: HIGH** |
 | React | 19.2.x | UI | Current stable line on npm; works with Vite 8 and modern concurrent patterns. **Confidence: HIGH** |
 | TypeScript | 6.0.x | Typed frontend | Aligns with React 19 / tooling; use `strict` + path aliases in Vite. **Confidence: HIGH** |

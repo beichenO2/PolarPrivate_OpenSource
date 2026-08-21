@@ -4,6 +4,8 @@
 > 源码：`backend/app/core/rate_limiter.py`、`backend/app/core/model_routing.py`、`backend/app/api/v1_gateway.py`
 >
 > **2026-08-17**：讯飞 `glm51` / 阿里 `codingplan` 已从注册表删除，`LOAD_BALANCE_GROUPS` 现为空（在册码单源）。下文权重表是历史记录。
+>
+> **2026-08-21**：本文只写 `ServiceBudget`（按 Binding `service_name` 的 Semaphore + 冷却引流）。在途 `/v1` 条数还受 SQLAlchemy QueuePool 与 httpx.Limits 限制；那一层不是 `acquire()`，`GET /api/rate-limits` 也看不到。见 [`runtime-limits.md`](./runtime-limits.md)。
 
 ## 关键决策（2026-06 · 软性跨订阅引流）
 
@@ -35,7 +37,7 @@ PolarUI、AutoOffice、KnowLever、digist 等）同时通过它请求上游 API�
 | `llm.glm51.enterprise`（讯飞 MaaS 企业版） | GLM-5.1 / DeepSeek V4 Flash·Pro / Kimi-K2.6 |
 | `llm.minimax` | MiniMax-M3 / M3-Thinking |
 | `llm.aliyun.codingplan` | Qwen3.7-Plus |
-| `llm.aliyun.dashscope` | Qwen3-VL-Flash（视觉） |
+| `llm.aliyun.dashscope` | Qwen3.8-27B / Qwen3-VL-Flash（百炼） |
 
 核心思路：与其在单一订阅上自我节流，不如把负载**分摊/引流**到多个订阅，并在
 某个订阅被上游限流时把流量切到其它订阅。中心化网关天然适合做这种全局调度。
@@ -55,6 +57,7 @@ PolarUI、AutoOffice、KnowLever、digist 等）同时通过它请求上游 API�
 ├─ ② FairScheduler：接近满载(≥80%)时低优先级客户端略让行（只延迟，不拒绝）
 │
 ├─ ③ ServiceBudget.acquire()：只等并发信号量（无 RPM 节流、无超时拒绝）
+│     （此前 Session 已 checkout；QueuePool 槽在 ④ 的 await 期间仍占用，见 runtime-limits.md）
 │
 ├─ ④ 转发上游
 │     成功            → 返回（流式/非流式）
@@ -141,6 +144,7 @@ knowlever: 3    digist: 3    sotagent: 2    unknown: 5
 | `llm.aliyun.dashscope` | 50 |
 | `llm.minimax` | 12 |
 | `llm.minimax_1` | 12 |
+| `llm.rightapi` | 24（直出 10 + sol 裁定 10 + 余量；2026-08-21） |
 | 其他（默认） | 3 |
 
 ### 环境变量

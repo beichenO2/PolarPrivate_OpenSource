@@ -488,9 +488,7 @@ def sync_pull(
     )
 
 
-# ── PeerSync integration with SOTAgent ───────────────────────────────
-
-_SOTAGENT_URL = os.environ.get("SOTAGENT_URL", "http://127.0.0.1:4800")
+# ── Retired PeerSync integration ─────────────────────────────────────
 
 
 class PeerSyncStatusResponse(BaseModel):
@@ -504,48 +502,13 @@ class PeerSyncStatusResponse(BaseModel):
 
 @router.get("/peer-status", response_model=PeerSyncStatusResponse)
 def get_peer_sync_status() -> PeerSyncStatusResponse:
-    """Check PeerSync status via SOTAgent."""
-    import urllib.request
-    import urllib.error
-
+    """Return the explicit retired state; never probe the old SOTAgent peer API."""
     local_backup = _BACKUP_FILE.exists()
-
-    try:
-        req = urllib.request.Request(f"{_SOTAGENT_URL}/api/peer/status", method="GET")
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            peer_data = json.loads(resp.read())
-    except (urllib.error.URLError, OSError):
-        return PeerSyncStatusResponse(
-            peer_reachable=False,
-            vault_in_sync=False,
-            local_backup_exists=local_backup,
-            message="SOTAgent 不可达，无法获取 PeerSync 状态",
-        )
-
-    peer = peer_data.get("peer", {})
-    is_reachable = peer.get("reachable", False)
-    hostname = peer.get("hostname")
-    last_hb = peer.get("last_heartbeat")
-
-    vault_synced = True
-    if local_backup:
-        cwd = str(_PROJECT_ROOT)
-        try:
-            result = subprocess.run(
-                ["git", "diff", "--name-only", "HEAD", "origin/main", "--", "sync/vault-backup.json"],
-                cwd=cwd, capture_output=True, text=True, timeout=5,
-            )
-            vault_synced = not result.stdout.strip()
-        except Exception:
-            vault_synced = False
-
     return PeerSyncStatusResponse(
-        peer_reachable=is_reachable,
-        peer_hostname=hostname,
-        last_heartbeat=last_hb,
-        vault_in_sync=vault_synced,
+        peer_reachable=False,
+        vault_in_sync=False,
         local_backup_exists=local_backup,
-        message="PeerSync 正常" if is_reachable and vault_synced else "需要同步",
+        message="PeerSync 已退役；请通过受支持的备份同步流程处理。",
     )
 
 
@@ -554,24 +517,5 @@ def notify_peer_of_backup(
     session: Annotated[Session, Depends(get_db)],
     vault: Annotated[VaultService, Depends(require_admin_vault)],
 ) -> dict:
-    """Notify SOTAgent peer that a new vault backup is available."""
-    import urllib.request
-    import urllib.error
-
-    notify_payload = json.dumps({
-        "project": "PolarPrivate",
-        "event": "vault_backup_updated",
-        "sync_file": "sync/vault-backup.json",
-    }).encode()
-
-    try:
-        req = urllib.request.Request(
-            f"{_SOTAGENT_URL}/api/peer/notify",
-            data=notify_payload,
-            method="POST",
-        )
-        req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            return {"notified": True, "peer_response": json.loads(resp.read())}
-    except (urllib.error.URLError, OSError) as e:
-        return {"notified": False, "error": str(e)}
+    """Return a structured retired response without contacting SOTAgent."""
+    return {"notified": False, "error": "peer_sync_retired"}

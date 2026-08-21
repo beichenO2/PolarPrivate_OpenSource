@@ -66,6 +66,23 @@ VITE_API_BASE=http://127.0.0.1:9090 npm run dev
 
 ---
 
+### LLM 网关卡住、`/health` 也不返回
+
+#### Q: 同时打十几路以上 `/v1/chat/completions` 时，`curl /health` 一直等到超时
+
+**症状**: 客户端对 `/v1` 和 `/health` 都超时；进程可能仍在，`GET /api/rate-limits` 同样出不来。`llm.rightapi` 的 `max_concurrent=24`、百炼 `50` 对不上现场（15 路正常、20 路整进程无响应）。
+
+**原因**: `unified_chat_completions` 是 `async def`，却在 `await` 上游期间一直握着 SQLAlchemy `Session`。QueuePool 默认 `pool_size=5` + `max_overflow=10` = 15；第 16 路 `checkout` 在 event loop 线程上同步等待，asyncio 文档所称 blocking 会推迟同一 thread 上其它 Task。`/health` 虽是 `def`（FastAPI 丢 threadpool），仍要 event loop 去调度。2026-08-21 已把文件 SQLite 的 `pool_size` 改为 100。分层对照见 [`runtime-limits.md`](./runtime-limits.md)。
+
+**解决**:
+
+1. 确认运行中的进程已加载 `backend/app/db/session.py` 的 `SQLITE_POOL_SIZE = 100`（改代码后须重启 `privportal-backend`）。
+2. 单测：`backend/tests/test_db.py` 的 `test_sqlite_file_pool_allows_100_slots`。
+3. 若 `/health` 正常而只有某一 Binding 排队，看 `GET /api/rate-limits` 的 `in_flight`（那是 ServiceBudget，不是 QueuePool）。
+4. 若 `/health` 正常且 JSON 504 `Upstream LLM request timed out`，看 httpx `pool=10.0` / `read=600.0`（`proxy.py` `_NON_STREAM_TIMEOUT`），不是 QueuePool checkout。
+
+---
+
 ### 数据库类问题
 
 #### Q: Onboarding 向导初始化数据库失败

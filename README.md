@@ -225,6 +225,8 @@ PP_MAX_TOKENS=5 bash scripts/test-qcsa-routing.sh      # 控制 max_tokens
 ## 文档
 
 - [系统架构](docs/architecture.md)
+- [运行时上限（QueuePool / ServiceBudget / httpx）](docs/runtime-limits.md)
+- [限速算法（仅 ServiceBudget）](docs/rate-limiting-algorithm.md)
 - [安全模型](docs/security-model.md)
 - [API 参考](docs/api-reference.md)
 - [使用指南](docs/usage.md)

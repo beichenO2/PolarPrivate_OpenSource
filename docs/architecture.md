@@ -12,7 +12,7 @@ PolarPrivate 是 Polarisor 生态的**供给平面（supply plane）**：本地�
 | Web 框架   | FastAPI + Starlette                            | ≥0.135           |
 | ASGI 服务器 | Uvicorn                                        | ≥0.44            |
 | ORM        | SQLAlchemy 2.x (sync)                          | ≥2.0.49          |
-| 数据库     | SQLite (WAL mode)                              | 3.x (Python 内置) |
+| 数据库     | SQLite（`session.py` 未设 `journal_mode`；SQLite 默认 DELETE） | 3.x (Python 内置) |
 | 数据库迁移 | Alembic                                        | ≥1.18            |
 | 加密       | cryptography (Fernet / MultiFernet / PBKDF2)   | ≥46.0            |
 | HTTP 客户端 | httpx (异步)                                   | ≥0.28            |
@@ -139,7 +139,7 @@ PolarPrivate/
 
 ### 2. 数据层
 
-**数据库**: SQLite 单文件 (`privportal.db`)，同步引擎 + `sessionmaker`。使用 `check_same_thread=False` 支持 FastAPI 多线程访问。
+**数据库**: SQLite 单文件 (`privportal.db`)，同步 `create_engine` + `sessionmaker`。`connect_args`：`check_same_thread=False`，`timeout=30`（`sqlite3.connect` busy 等待秒数）。文件库 QueuePool：`pool_size=100`、`max_overflow=0`（`SQLITE_POOL_SIZE` / `SQLITE_MAX_OVERFLOW`）。`POST /v1/chat/completions` 在 `await` 上游期间不关闭 Session，因此在途 `/v1` 条数受 QueuePool 同时 connection 数限制。各层数字与实测见 [`runtime-limits.md`](./runtime-limits.md)。`backend/` 无 `PRAGMA journal_mode=WAL`；SQLite 默认 journal_mode 为 DELETE（https://www.sqlite.org/pragma.html#pragma_journal_mode）。
 
 **ORM 模型** (`app/db/models.py`):
 
@@ -201,7 +201,7 @@ PBKDF2-HMAC-SHA256 (480,000 iterations) + random 16-byte salt
 
 ### 5. 统一 LLM Gateway
 
-**`app/api/v1_gateway.py`** 提供 `POST /v1/chat/completions`、`POST /v1/embeddings` 与 `GET /v1/models`。**`app/api/v1_media.py`** 提供生图 `POST /v1/images/generations`（`I000`）、生音频 `POST /v1/audio/speech`（`A000`）、生视频 `POST /v1/videos/generations`（`D000`）及任务查询。文本/视觉调用以 QCSA 能力码表达需求，网关负责解析真实模型与 Binding、跨订阅负载均衡、限流等待、失败引流，以及响应 `model` 字段去供应商化。
+**`app/api/v1_gateway.py`** 提供 `POST /v1/chat/completions`、`POST /v1/embeddings` 与 `GET /v1/models`。**`app/api/v1_media.py`** 提供生图 `POST /v1/images/generations`（`I000`）、生音频 `POST /v1/audio/speech`（`A000`）、生视频 `POST /v1/videos/generations`（`D000`）及任务查询。文本/视觉调用以 QCSA 能力码表达需求，网关负责解析真实模型与 Binding、跨订阅负载均衡、`ServiceBudget` 等待、失败引流，以及响应 `model` 字段去供应商化。在途 `/v1` 另受 QueuePool 限制，见 [`runtime-limits.md`](./runtime-limits.md)。
 
 ```
 Agent / OpenAI SDK

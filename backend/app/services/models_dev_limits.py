@@ -14,6 +14,7 @@ _MODEL_CONTEXT_WINDOWS: dict[str, int] = {
     # Aliyun codingPlan
     "qwen3-coder-plus": 1048576,
     "qwen3.6-plus": 1000000,
+    "qwen3.8-27b": 262144,
     "qwen3-max-2026-01-23": 262144,
     "qwen-vl-max": 131072,
     "kimi-k2.5": 262144,

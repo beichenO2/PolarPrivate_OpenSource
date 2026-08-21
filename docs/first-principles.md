@@ -58,7 +58,7 @@ R9 删除了 `POST /api/secrets/{secret_id}/reveal` 与 service-token 取值路�
 调用方真正需要的不是「某厂商的某模型」，而是某种**能力组合**——QCSA 四维（Quality / Context / Speed / Agentic）+ `V` 视觉前缀 + `L`/`E` 本地与嵌入码（SSOT：`backend/app/core/CAPABILITY_CODES.md`）。把需求编码为能力向量之后：
 
 - 路由、负载均衡（跨订阅加权引流）、降级链、冷却重试收敛在 `backend/app/core/model_routing.py`；
-- 并发 Semaphore + RPM 令牌桶收敛在 `backend/app/core/rate_limiter.py`；
+- 并发 Semaphore + RPM 令牌桶收敛在 `backend/app/core/rate_limiter.py`（`acquire` 只等 Semaphore，不按 rpm 停请求；在途 `/v1` 另受 QueuePool 限制，见 `docs/runtime-limits.md`）；
 - 用量与计费口径收敛在代理这一个采集点（生态计费模型以「经代理转发的请求」为一次消费）。
 
 换供应商时，十几个消费方一行配置不用改，只改代理一处。这是依赖倒置原则应用在模型供应上。

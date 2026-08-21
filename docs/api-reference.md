@@ -28,7 +28,7 @@
 
 ### `GET /health`
 
-健康检查端点。
+健康检查端点。实现是 `def health()`（`main.py`），不访问 SQLite。若在途 `/v1` 把 event loop 堵在 QueuePool checkout 上，本端点的 TCP 能连上但 JSON 出不去。分层见 [`runtime-limits.md`](./runtime-limits.md)。
 
 **响应**: `200 OK`
 
@@ -762,7 +762,7 @@ Polarisor 生态统一 LLM 网关（OpenAI 兼容）。按 QCSA capability code 
 
 **请求体**: 与 OpenAI Chat Completions 相同（`model`、`messages`、可选 `tools` /
 `stream` 等）。`model` 可为 4-bit QCSA code（如 `0001`）、视觉码 `V0000`/`V0010`/`V1000`、或在册别名
-`MiniMax-M3` / `glm-5.2` / `gpt-5.6-sol` / `nebula-*` 等。已退役：`1100`、`qwen3.7-plus`、xfyun/`xop*`、`L0000`。
+`MiniMax-M3` / `glm-5.2` / `gpt-5.6-sol` / `qwen3.8-27b` / `qwen3-vl-flash` / `nebula-*` 等。已退役：`1100`、`qwen3.7-plus`、xfyun/`xop*`、`L0000`。
 
 **可选请求头**:
 

@@ -29,7 +29,7 @@ description: >-
 | [references/agent-ops.md](references/agent-ops.md) | 健康检查、项目、Binding、代理调用、QCSA |
 | [references/slot-provisioning.md](references/slot-provisioning.md) | **先开槽再请用户填 Key**（硬流程） |
 | [references/qcsa-quickref.md](references/qcsa-quickref.md) | 常用能力码速查 |
-| 仓库文档 | `docs/api-reference.md` · `docs/security-model.md` · `docs/agent-playbook.md` |
+| 仓库文档 | `docs/runtime-limits.md` · `docs/rate-limiting-algorithm.md` · `docs/api-reference.md` · `docs/security-model.md` |
 
 ## 铁律（冲突时以本节为准）
 

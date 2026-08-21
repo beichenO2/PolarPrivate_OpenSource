@@ -92,6 +92,12 @@ MODEL_CATALOG: list[ModelEntry] = [
         description="Nebula 渠道 · DeepSeek V4 Pro（勿与 lant_ds_v4_pro / llm.lant 混淆）。",
     ),
     ModelEntry(
+        id="qwen3.8-27b",
+        provider="aliyun",
+        service="llm.aliyun.dashscope",
+        description="Qwen3.8-27B 原生视觉语言 Dense（阿里云百炼 / DashScope compatible-mode）。",
+    ),
+    ModelEntry(
         id="qwen3-vl-flash",
         provider="aliyun",
         service="llm.aliyun.dashscope",

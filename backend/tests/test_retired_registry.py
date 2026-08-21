@@ -110,3 +110,7 @@ def test_live_codes_still_resolve():
         "qwen3-vl-flash",
         "llm.aliyun.dashscope",
     )
+    assert resolve_model_and_service("qwen3.8-27b") == (
+        "qwen3.8-27b",
+        "llm.aliyun.dashscope",
+    )

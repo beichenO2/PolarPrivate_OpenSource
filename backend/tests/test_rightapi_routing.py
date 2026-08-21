@@ -22,3 +22,9 @@ def test_catalog_lists_gpt_56_sol():
     entry = next(e for e in MODEL_CATALOG if e.id == "gpt-5.6-sol")
     assert entry.service == "llm.rightapi"
     assert entry.provider == "rightapi"
+
+
+def test_rightapi_concurrent_allows_direct_plus_sol_ten_each():
+    from app.core.rate_limiter import _SERVICE_LIMITS
+
+    assert _SERVICE_LIMITS["llm.rightapi"].max_concurrent >= 20

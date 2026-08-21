@@ -32,7 +32,7 @@ POST http://127.0.0.1:12790/v1/chat/completions
 | `V0001` | 看图 + tool | MiniMax-M3 |
 | `V0101` | 多图 / 长材料 + tool | MiniMax-M3 |
 
-显式 `qwen3-vl-flash` 仍可走 DashScope。显式 `gpt-5.6-sol`（别名 `gpt-5.6`）走 RightAPI Codex（`llm.rightapi`）。已退役：`1100` `qwen3.7-plus`、全部 xfyun/`xop*`、`L0000`/`L0001`。
+显式 `qwen3.8-27b` / `qwen3-vl-flash` 仍可走百炼 DashScope（`llm.aliyun.dashscope`）。显式 `gpt-5.6-sol`（别名 `gpt-5.6`）走 RightAPI Codex（`llm.rightapi`）。已退役：`1100` `qwen3.7-plus`、全部 xfyun/`xop*`、`L0000`/`L0001`。
 
 ## 嵌入
 

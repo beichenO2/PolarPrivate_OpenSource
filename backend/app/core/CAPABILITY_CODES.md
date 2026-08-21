@@ -42,7 +42,7 @@
 
 ### 视觉/多模态模型（V 前缀）
 
-MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；显式 `qwen3-vl-flash` 可走 DashScope。
+MiniMax-M3 原生多模态（图 / 视频输入）。调用方仍只传 V 码；显式 `qwen3.8-27b` / `qwen3-vl-flash` 可走百炼 DashScope。
 
 | 码 | QCSA | 槽位含义 | 默认上游模型 | Binding | 备注 |
 |----|------|----------|--------------|---------|------|
@@ -86,6 +86,8 @@ QCSA 码之外，`/v1` 仍接受下列在册上游名（与 glm-5.2 同类）。
 
 | 调用方 model | 上游 | Binding | 备注 |
 |--------------|------|---------|------|
+| `qwen3.8-27b` | qwen3.8-27b | llm.aliyun.dashscope | 阿里云百炼；Secret `secret.aliyun.dashscope.api_key` |
+| `qwen3-vl-flash` | qwen3-vl-flash | llm.aliyun.dashscope | DashScope VL 显式别名 |
 | `gpt-5.6-sol` | gpt-5.6-sol | llm.rightapi | RightAPI Codex 号池；Secret `secret.rightapi.api_key` |
 | `gpt-5.6` | gpt-5.6-sol | llm.rightapi | 别名，与 OpenAI `gpt-5.6` → Sol 一致 |
 | `glm-5.2` | glm-5.2 | llm.glm2 | 独立 glm2 线 |
